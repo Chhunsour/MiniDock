@@ -3,6 +3,7 @@ import AppKit
 
 public struct AppLauncherWidgetView: View {
     @ObservedObject private var launcherService = AppLauncherService.shared
+    @State private var isAddHovered = false
     
     public init() {}
     
@@ -10,50 +11,46 @@ public struct AppLauncherWidgetView: View {
         let displayedApps = launcherService.isEditMode ? launcherService.apps : launcherService.visibleApps
         
         WidgetCardView {
-            HStack(spacing: launcherService.isEditMode ? 10 : 12) {
+            HStack(spacing: launcherService.isEditMode ? 10 : 11) {
                 ForEach(displayedApps) { app in
                     AppIconSlotView(app: app)
                 }
                 
+                // Inline Add Button
+                Button(action: {
+                    AppPickerWindowController.shared.present()
+                }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(isAddHovered ? .white : .white.opacity(0.45))
+                        .frame(width: 20, height: 26)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.white.opacity(isAddHovered ? 0.14 : 0.04))
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Add Application to Dock")
+                .onHover { isAddHovered = $0 }
+                
                 if launcherService.isEditMode {
-                    editModeControls
+                    Button(action: {
+                        withAnimation {
+                            launcherService.isEditMode = false
+                        }
+                    }) {
+                        Text("Done")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white)
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
-    }
-    
-    @ViewBuilder
-    private var editModeControls: some View {
-        Button(action: {
-            AppPickerWindowController.shared.present()
-        }) {
-            VStack(spacing: 2) {
-                Image(systemName: "plus.circle.dashed")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
-                    .frame(width: 28, height: 28)
-                Text("Add")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.blue)
-            }
-        }
-        .buttonStyle(.plain)
-        .help("Add Application")
-        
-        Button(action: {
-            withAnimation {
-                launcherService.isEditMode = false
-            }
-        }) {
-            Text("Done")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.black)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.white)
-                .cornerRadius(6)
-        }
-        .buttonStyle(.plain)
     }
 }
 

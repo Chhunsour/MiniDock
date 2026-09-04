@@ -168,7 +168,7 @@ public struct SettingsView: View {
                     Toggle("System Performance Summary", isOn: $settings.showSystem)
                     Toggle("Dev Stack & Ports Monitor", isOn: $settings.showDevStack)
                     Toggle("Git Repo Context", isOn: $settings.showRepo)
-                    Toggle("Now Playing Media (Compact)", isOn: $settings.showNowPlaying)
+                    Toggle("Secondary Glance (Now Playing & Clipboard)", isOn: $settings.showNowPlaying)
                 }
             }
             .padding(18)

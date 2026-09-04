@@ -13,26 +13,27 @@ public struct WidgetCardView<Content: View>: View {
     
     public var body: some View {
         content
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white.opacity(isHovered ? 0.08 : 0.04))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white.opacity(isHovered ? 0.09 : 0.045))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(isHovered ? 0.22 : 0.12),
-                                Color.white.opacity(isHovered ? 0.08 : 0.03)
+                                Color.white.opacity(isHovered ? 0.24 : 0.12),
+                                Color.white.opacity(isHovered ? 0.08 : 0.02)
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            startPoint: .top,
+                            endPoint: .bottom
                         ),
                         lineWidth: 1
                     )
             )
+            .shadow(color: Color.black.opacity(isHovered ? 0.35 : 0.15), radius: isHovered ? 5 : 2, x: 0, y: 1)
             .scaleEffect(isHovered ? 1.015 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
             .onHover { hovering in

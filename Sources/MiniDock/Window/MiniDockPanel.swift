@@ -59,12 +59,13 @@ public final class MiniDockPanel: NSPanel {
         
         host.layoutSubtreeIfNeeded()
         let fitting = host.fittingSize
-        let width = max(ceil(fitting.width) + 12, 360)
-        let height = max(ceil(fitting.height) + 10, 60)
+        let width = max(ceil(fitting.width), 360)
+        let height = max(ceil(fitting.height), 56)
         
         let screenRect = screen.frame
         let x = screenRect.origin.x + (screenRect.width - width) / 2.0
-        let y = screenRect.origin.y + 14.0
+        // Screen-edge attached: flush against the bottom display boundary
+        let y = screenRect.origin.y
         
         let targetFrame = NSRect(x: x, y: y, width: width, height: height)
         
