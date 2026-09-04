@@ -57,33 +57,96 @@ public struct AppLauncherWidgetView: View {
 private struct AppIconSlotView: View {
     let app: LauncherAppItem
     @ObservedObject private var launcherService = AppLauncherService.shared
+    @ObservedObject private var settings = AppSettings.shared
     @State private var isHovered: Bool = false
     @State private var isPressed: Bool = false
+    @State private var wiggle: Bool = false
     
     var body: some View {
         let isRunning = launcherService.isRunning(app)
         let isEditMode = launcherService.isEditMode
         let icon = app.icon
+        let iconSize = CGFloat(settings.iconSize)
         
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 3) {
-                Image(nsImage: icon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 28, height: 28)
-                    .cornerRadius(6)
-                    .shadow(color: isHovered ? Color.white.opacity(0.35) : Color.black.opacity(0.3), radius: isHovered ? 5 : 2, x: 0, y: 1)
-                    .scaleEffect(isPressed ? 0.90 : (isHovered && !isEditMode ? 1.15 : 1.0))
-                
-                // Active Running Indicator Dot
-                Circle()
-                    .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
-                    .frame(width: 3.5, height: 3.5)
-                    .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
+            Button(action: handleTap) {
+                VStack(spacing: 3) {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: iconSize, height: iconSize)
+                        .cornerRadius(max(iconSize * 0.22, 5))
+                        .shadow(
+                            color: (settings.runningIndicatorStyle == "Glow" && isRunning) ? settings.activeAccentColor.opacity(0.8) : (isHovered ? Color.white.opacity(0.35) : Color.black.opacity(0.3)),
+                            radius: (settings.runningIndicatorStyle == "Glow" && isRunning) ? 6 : (isHovered ? 5 : 2),
+                            x: 0,
+                            y: 1
+                        )
+                        .scaleEffect(isPressed ? 0.90 : (isHovered && !isEditMode ? 1.15 : 1.0))
+                        .rotationEffect(.degrees(isEditMode ? (wiggle ? 1.8 : -1.8) : 0))
+                        .animation(isEditMode ? .easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default, value: wiggle)
+                        .onAppear {
+                            if isEditMode { wiggle = true }
+                        }
+                        .onChange(of: isEditMode) { _, active in
+                            wiggle = active
+                        }
+                    
+                    // Active Running Indicator
+                    indicatorView(isRunning: isRunning)
+                }
+                .frame(width: max(iconSize, 32), height: iconSize + 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(app.name)
+            .onHover { hovering in
+                isHovered = hovering
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                handleTap()
+            .contextMenu {
+                Text(app.name).font(.headline)
+                Divider()
+                
+                Button("Open / Focus") {
+                    handleTap()
+                }
+                
+                Button("New Window") {
+                    launcherService.openNewWindow(app)
+                }
+                
+                Button("Show in Finder") {
+                    launcherService.showInFinder(app)
+                }
+                
+                if isRunning {
+                    Button("Hide") {
+                        launcherService.hideApp(app)
+                    }
+                    
+                    if app.bundleIdentifier != "com.apple.finder" {
+                        Button("Quit") {
+                            launcherService.quitApp(app)
+                        }
+                    }
+                }
+                
+                Divider()
+                
+                Button("Remove from FlowDock") {
+                    removeSelf()
+                }
+                
+                Button("Replace Application...") {
+                    AppPickerWindowController.shared.present(replacingItem: app)
+                }
+                
+                Divider()
+                
+                Button("FlowDock Settings...") {
+                    MenuBarController.shared.openSettings(tab: .apps)
+                }
             }
             
             // Circular × Remove Badge in Edit Mode
@@ -98,51 +161,25 @@ private struct AppIconSlotView: View {
                 .offset(x: 5, y: -4)
             }
         }
-        .help(app.name)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .contextMenu {
-            Button("Open") {
-                handleTap()
-            }
-            
-            Button("Show in Finder") {
-                launcherService.showInFinder(app)
-            }
-            
-            Button("Replace Application...") {
-                AppPickerWindowController.shared.present(replacingItem: app)
-            }
-            
-            Button("Remove from Dock") {
-                removeSelf()
-            }
-            
-            if isRunning && app.bundleIdentifier != "com.apple.finder" {
-                Divider()
-                Button("Quit \(app.name)") {
-                    launcherService.quitApp(app)
-                }
-            }
-            
-            Divider()
-            
-            Button("Add Application...") {
-                AppPickerWindowController.shared.present()
-            }
-            
-            Button(isEditMode ? "Done Editing" : "Edit Apps") {
-                withAnimation {
-                    launcherService.isEditMode.toggle()
-                }
-            }
-            
-            Divider()
-            
-            Button("MiniDock Settings...") {
-                NotificationCenter.default.post(name: NSNotification.Name("OpenMiniDockSettings"), object: nil)
-            }
+    }
+    
+    @ViewBuilder
+    private func indicatorView(isRunning: Bool) -> some View {
+        switch settings.runningIndicatorStyle {
+        case "Bar":
+            Capsule()
+                .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
+                .frame(width: 12, height: 2.5)
+                .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
+        case "Glow":
+            Color.clear.frame(height: 3)
+        case "Off":
+            Color.clear.frame(height: 3)
+        default: // "Dot"
+            Circle()
+                .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
+                .frame(width: 3.5, height: 3.5)
+                .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
         }
     }
     

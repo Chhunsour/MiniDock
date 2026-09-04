@@ -8,6 +8,8 @@ public final class MenuBarController: NSObject {
     private var statusItem: NSStatusItem?
     private var settingsWindow: NSWindow?
     
+    @Published public var activeSettingsTab: FlowDockSettingsTab = .general
+    
     private override init() {
         super.init()
         setupStatusItem()
@@ -33,7 +35,7 @@ public final class MenuBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        let settingsItem = NSMenuItem(title: "FlowDock Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "FlowDock Settings...", action: #selector(openSettingsDefault), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
         
@@ -49,6 +51,10 @@ public final class MenuBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
+        let restartItem = NSMenuItem(title: "Restart FlowDock", action: #selector(restartFlowDock), keyEquivalent: "r")
+        restartItem.target = self
+        menu.addItem(restartItem)
+        
         let quitItem = NSMenuItem(title: "Quit FlowDock", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -59,10 +65,21 @@ public final class MenuBarController: NSObject {
     private func setupNotificationListener() {
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(openSettings),
+            selector: #selector(handleSettingsNote(_:)),
             name: NSNotification.Name("OpenMiniDockSettings"),
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSettingsNote(_:)),
+            name: NSNotification.Name("OpenFlowDockSettings"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleSettingsNote(_ note: Notification) {
+        let tab = note.userInfo?["tab"] as? FlowDockSettingsTab
+        openSettings(tab: tab)
     }
     
     @objc public func openCommandPalette() {
@@ -73,23 +90,33 @@ public final class MenuBarController: NSObject {
         FocusService.shared.togglePlayPause()
     }
     
-    @objc public func openSettings() {
+    @objc public func openSettingsDefault() {
+        openSettings(tab: nil)
+    }
+    
+    public func openSettings(tab: FlowDockSettingsTab? = nil) {
+        let targetTab = tab ?? .general
+        self.activeSettingsTab = targetTab
+        
         if let window = settingsWindow {
+            window.contentView = NSHostingView(rootView: SettingsView(initialTab: targetTab))
+            window.level = .floating
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 530),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
         window.title = "FlowDock Settings"
         window.center()
-        window.contentView = NSHostingView(rootView: SettingsView())
+        window.contentView = NSHostingView(rootView: SettingsView(initialTab: targetTab))
         window.isReleasedWhenClosed = false
+        window.level = .floating
         self.settingsWindow = window
         
         window.makeKeyAndOrderFront(nil)
@@ -105,6 +132,15 @@ public final class MenuBarController: NSObject {
     @objc public func restoreAppleDock() {
         AppSettings.shared.autoHideAppleDock = false
         DockManager.shared.restoreAppleDock()
+    }
+    
+    @objc public func restartFlowDock() {
+        let script = "sleep 0.25; open -n '/Applications/MiniDock.app' || open -n '$HOME/Projects/MiniDock/MiniDock.app'"
+        let task = Process()
+        task.launchPath = "/bin/sh"
+        task.arguments = ["-c", script]
+        try? task.run()
+        NSApplication.shared.terminate(nil)
     }
     
     @objc public func quitApp() {

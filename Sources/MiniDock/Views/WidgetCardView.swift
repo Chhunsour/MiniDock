@@ -32,6 +32,7 @@ public struct WidgetCardView<Content: View>: View {
                         ),
                         lineWidth: 1
                     )
+                    .allowsHitTesting(false)
             )
             .shadow(color: Color.black.opacity(isHovered ? 0.35 : 0.15), radius: isHovered ? 5 : 2, x: 0, y: 1)
             .scaleEffect(isHovered ? 1.015 : 1.0)

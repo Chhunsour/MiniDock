@@ -3,13 +3,18 @@ import AppKit
 
 public struct DockContainerView: View {
     @ObservedObject private var settings = AppSettings.shared
+    @ObservedObject private var launcher = AppLauncherService.shared
+    @ObservedObject private var workspaceService = WorkspaceService.shared
     @ObservedObject private var transient = TransientCapsuleManager.shared
     @State private var isDockHovered = false
     
     public init() {}
     
     public var body: some View {
-        HStack(spacing: isDockHovered ? 10 : 8) {
+        let dockSpacing = CGFloat(settings.dockSpacing) + (isDockHovered ? 2 : 0)
+        let radius = CGFloat(settings.cornerRadius)
+        
+        HStack(spacing: dockSpacing) {
             // 1. Focus Pill (Minimal ◉ 25m)
             if settings.showFocus {
                 FocusWidgetView()
@@ -67,11 +72,11 @@ public struct DockContainerView: View {
         .background(
             ZStack {
                 // Glass material
-                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: 24)
+                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
                     .fill(.ultraThinMaterial)
                 
                 // Deep obsidian gradient fading smoothly into bottom monitor bezel
-                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: 24)
+                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -83,10 +88,14 @@ public struct DockContainerView: View {
                         )
                     )
             }
+            .contentShape(EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius))
+            .contextMenu {
+                dockContextMenu
+            }
         )
         .overlay(
             // Hairline rim highlighting that dissolves gracefully into the bottom bezel
-            EdgeFusedDockRim(flareWidth: 26, filletRadius: 20, cornerRadius: 24)
+            EdgeFusedDockRim(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
                 .stroke(
                     LinearGradient(
                         stops: [
@@ -102,7 +111,10 @@ public struct DockContainerView: View {
                     ),
                     lineWidth: 1
                 )
+                .allowsHitTesting(false)
         )
+        // Accent edge ambient glow (live reacting to settings)
+        .shadow(color: settings.activeAccentColor.opacity(settings.subtleGlowAmount), radius: isDockHovered ? 20 : 12, x: 0, y: -3)
         // Upward ambient shadow onto desktop wallpaper
         .shadow(color: Color.black.opacity(isDockHovered ? 0.65 : 0.50), radius: isDockHovered ? 28 : 20, x: 0, y: -4)
         .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: -1)
@@ -114,6 +126,157 @@ public struct DockContainerView: View {
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: isDockHovered)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.dockScale)
+        .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.dockSpacing)
+        .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.cornerRadius)
+        .onAppear {
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.keyCode == 53 { // ESC
+                    if AppLauncherService.shared.isEditMode {
+                        Task { @MainActor in
+                            withAnimation {
+                                AppLauncherService.shared.isEditMode = false
+                            }
+                        }
+                        return nil
+                    }
+                }
+                return event
+            }
+            NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
+                if event.keyCode == 53 {
+                    if AppLauncherService.shared.isEditMode {
+                        Task { @MainActor in
+                            withAnimation {
+                                AppLauncherService.shared.isEditMode = false
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var dockContextMenu: some View {
+        Text("FlowDock").font(.headline)
+        Divider()
+        
+        Button("Add Application...") {
+            AppPickerWindowController.shared.present()
+        }
+        
+        Button(action: {
+            withAnimation {
+                launcher.isEditMode.toggle()
+            }
+        }) {
+            HStack {
+                Text("Edit Apps")
+                if launcher.isEditMode {
+                    Text("✓")
+                }
+            }
+        }
+        
+        Menu("Workspaces") {
+            ForEach(workspaceService.workspaces) { ws in
+                Button(ws.name) {
+                    workspaceService.launchWorkspace(ws)
+                }
+            }
+            Divider()
+            Button("Manage Workspaces...") {
+                MenuBarController.shared.openSettings(tab: .workspaces)
+            }
+        }
+        
+        Menu("Focus") {
+            Button("Start 25m Focus") {
+                FocusService.shared.switchMode(.focus25)
+                FocusService.shared.start()
+            }
+            Button("Start 50m Deep Work") {
+                FocusService.shared.switchMode(.focus50)
+                FocusService.shared.start()
+            }
+            Button("Start 90m Flow State") {
+                FocusService.shared.switchMode(.focus90)
+                FocusService.shared.start()
+            }
+            Button("5m Short Break") {
+                FocusService.shared.switchMode(.shortBreak)
+                FocusService.shared.start()
+            }
+            Button("15m Long Break") {
+                FocusService.shared.switchMode(.longBreak)
+                FocusService.shared.start()
+            }
+            Divider()
+            Button(FocusService.shared.isRunning ? "Pause Focus" : "Resume Focus") {
+                FocusService.shared.togglePlayPause()
+            }
+            .disabled(!FocusService.shared.isRunning && !FocusService.shared.isPaused)
+            Button("Reset Focus") {
+                FocusService.shared.reset()
+            }
+            Divider()
+            Button("Focus Settings...") {
+                MenuBarController.shared.openSettings(tab: .focus)
+            }
+        }
+        
+        Divider()
+        
+        Menu("Dock Position") {
+            Button("Bottom ✓") {}
+            Button("Left (Coming Soon)") {}.disabled(true)
+            Button("Right (Coming Soon)") {}.disabled(true)
+        }
+        
+        Menu("Auto Hide") {
+            Button(action: {
+                settings.dockBehavior = "Always Visible"
+            }) {
+                HStack {
+                    Text("Always Visible")
+                    if settings.dockBehavior == "Always Visible" { Text("✓") }
+                }
+            }
+            Button(action: {
+                settings.dockBehavior = "Auto-Hide on Inactive"
+            }) {
+                HStack {
+                    Text("Auto-Hide on Inactive")
+                    if settings.dockBehavior == "Auto-Hide on Inactive" { Text("✓") }
+                }
+            }
+            Divider()
+            Button(action: {
+                settings.autoHideAppleDock.toggle()
+                DockManager.shared.setAppleDockAutoHide(settings.autoHideAppleDock)
+            }) {
+                HStack {
+                    Text("Auto-Hide Apple Dock")
+                    if settings.autoHideAppleDock { Text("✓") }
+                }
+            }
+        }
+        
+        Divider()
+        
+        Button("Settings...") {
+            MenuBarController.shared.openSettings(tab: .general)
+        }
+        
+        Divider()
+        
+        Button("Restart FlowDock") {
+            MenuBarController.shared.restartFlowDock()
+        }
+        
+        Button("Quit FlowDock") {
+            MenuBarController.shared.quitApp()
+        }
     }
 }
 

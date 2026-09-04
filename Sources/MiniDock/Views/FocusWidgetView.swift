@@ -58,6 +58,57 @@ public struct FocusWidgetView: View {
         .popover(isPresented: $showingPopover, arrowEdge: .top) {
             FocusDetailPopover(focus: focus)
         }
+        .contentShape(Rectangle())
+        .contextMenu {
+            Text("Focus Session (\(focus.formattedRemainingTime))").font(.headline)
+            Divider()
+            
+            Button("Start 25m Focus") {
+                focus.switchMode(.focus25)
+                focus.start()
+            }
+            
+            Button("Start 50m Deep Work") {
+                focus.switchMode(.focus50)
+                focus.start()
+            }
+            
+            Button("Start 90m Flow State") {
+                focus.switchMode(.focus90)
+                focus.start()
+            }
+            
+            Button("5m Short Break") {
+                focus.switchMode(.shortBreak)
+                focus.start()
+            }
+            
+            Button("15m Long Break") {
+                focus.switchMode(.longBreak)
+                focus.start()
+            }
+            
+            Divider()
+            
+            Button(focus.isRunning ? "Pause Session" : "Resume Session") {
+                focus.togglePlayPause()
+            }
+            .disabled(!focus.isRunning && !focus.isPaused)
+            
+            Button("End Session / Reset") {
+                focus.reset()
+            }
+            
+            Divider()
+            
+            Button("Focus Settings...") {
+                MenuBarController.shared.openSettings(tab: .focus)
+            }
+            
+            Button("FlowDock Settings...") {
+                MenuBarController.shared.openSettings(tab: .general)
+            }
+        }
     }
 }
 

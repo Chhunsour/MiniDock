@@ -116,6 +116,32 @@ public final class AppLauncherService: ObservableObject {
         }
     }
     
+    public func openNewWindow(_ item: LauncherAppItem) {
+        if item.bundleIdentifier == "com.apple.finder" {
+            let script = "tell application \"Finder\" to make new Finder window\ntell application \"Finder\" to activate"
+            var err: NSDictionary?
+            NSAppleScript(source: script)?.executeAndReturnError(&err)
+            return
+        }
+        if let appUrl = item.resolvedURL {
+            let config = NSWorkspace.OpenConfiguration()
+            config.activates = true
+            config.createsNewApplicationInstance = true
+            NSWorkspace.shared.openApplication(at: appUrl, configuration: config) { _, _ in }
+            let script = "tell application id \"\(item.bundleIdentifier)\" to activate\ntell application \"System Events\" to tell process \"\(item.name)\" to keystroke \"n\" using command down"
+            var err: NSDictionary?
+            NSAppleScript(source: script)?.executeAndReturnError(&err)
+        }
+    }
+    
+    public func hideApp(_ item: LauncherAppItem) {
+        guard !item.bundleIdentifier.isEmpty else { return }
+        let runningApps = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == item.bundleIdentifier }
+        for app in runningApps {
+            app.hide()
+        }
+    }
+    
     public func quitApp(_ item: LauncherAppItem) {
         guard !item.bundleIdentifier.isEmpty else { return }
         let runningApps = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == item.bundleIdentifier }

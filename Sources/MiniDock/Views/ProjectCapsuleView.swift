@@ -78,6 +78,67 @@ public struct ProjectCapsuleView: View {
         .popover(isPresented: $showingDetailPopover, arrowEdge: .top) {
             ProjectDetailPanel(service: service)
         }
+        .contentShape(Rectangle())
+        .contextMenu {
+            Text("Project: \(p.name)").font(.headline)
+            Divider()
+            
+            Button("Open in Editor") {
+                service.openInBestEditor(path: p.path)
+            }
+            
+            Button("Open Terminal") {
+                service.openTerminal(at: p.path)
+            }
+            
+            Button("Open Folder") {
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: p.path)
+            }
+            
+            if let gh = p.gitHubURL {
+                Button("View on GitHub") {
+                    NSWorkspace.shared.open(gh)
+                }
+            }
+            
+            if !p.actions.isEmpty {
+                Divider()
+                Menu("Quick Actions") {
+                    ForEach(p.actions) { action in
+                        Button(action.title) {
+                            service.executeAction(action)
+                        }
+                    }
+                }
+            }
+            
+            if !service.candidateProjects.isEmpty {
+                Menu("Switch Project") {
+                    ForEach(service.candidateProjects, id: \.self) { path in
+                        Button(action: {
+                            service.selectProject(at: path)
+                        }) {
+                            HStack {
+                                Text(URL(fileURLWithPath: path).lastPathComponent)
+                                if path == p.path {
+                                    Text("✓")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+            
+            Button("Project Settings...") {
+                MenuBarController.shared.openSettings(tab: .projects)
+            }
+            
+            Button("FlowDock Settings...") {
+                MenuBarController.shared.openSettings(tab: .general)
+            }
+        }
     }
 }
 

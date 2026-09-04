@@ -63,10 +63,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
-            if url.host == "settings" || url.path.contains("settings") {
+            let spec = ((url.host ?? "") + "/" + url.path).lowercased()
+            if spec.contains("settings") {
                 MenuBarController.shared.openSettings()
-            } else if url.host == "command" || url.path.contains("command") {
+            } else if spec.contains("command") {
                 CommandPaletteWindowController.shared.toggle()
+            } else if spec.contains("edit") {
+                Task { @MainActor in
+                    withAnimation {
+                        AppLauncherService.shared.isEditMode.toggle()
+                    }
+                }
             }
         }
     }

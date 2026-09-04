@@ -5,6 +5,7 @@ import AppKit
 public enum FocusMode: String, CaseIterable, Identifiable {
     case focus25 = "25m Sprint"
     case focus50 = "50m Deep Work"
+    case focus90 = "90m Flow State"
     case shortBreak = "5m Break"
     case longBreak = "15m Rest"
     
@@ -14,6 +15,7 @@ public enum FocusMode: String, CaseIterable, Identifiable {
         switch self {
         case .focus25: return 25 * 60
         case .focus50: return 50 * 60
+        case .focus90: return 90 * 60
         case .shortBreak: return 5 * 60
         case .longBreak: return 15 * 60
         }
@@ -23,6 +25,7 @@ public enum FocusMode: String, CaseIterable, Identifiable {
         switch self {
         case .focus25: return "Focus"
         case .focus50: return "Deep Work"
+        case .focus90: return "Flow State"
         case .shortBreak: return "Break"
         case .longBreak: return "Rest"
         }

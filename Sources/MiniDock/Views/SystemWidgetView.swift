@@ -65,6 +65,38 @@ public struct SystemWidgetView: View {
         .popover(isPresented: $showingDiagnostics, arrowEdge: .top) {
             SystemDiagnosticsPopover(monitor: monitor, devStack: devStack)
         }
+        .contentShape(Rectangle())
+        .contextMenu {
+            Text("System Diagnostics").font(.headline)
+            Divider()
+            
+            Button("Open Diagnostics Details") {
+                showingDiagnostics.toggle()
+            }
+            
+            Button("Launch Activity Monitor") {
+                if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
+                    NSWorkspace.shared.open(appUrl)
+                }
+            }
+            
+            Divider()
+            
+            Text("CPU: \(String(format: "%.1f%%", monitor.stats.cpuUsage))")
+            Text("RAM: \(Int(monitor.stats.ramUsage))% (\(String(format: "%.1f", monitor.stats.ramUsedGB))/\(String(format: "%.0f", monitor.stats.ramTotalGB)) GB)")
+            Text("Disk Free: \(String(format: "%.0f GB", monitor.stats.diskFreeGB))")
+            Text("Net: ↓ \(monitor.stats.formattedDownloadSpeed)  ↑ \(monitor.stats.formattedUploadSpeed)")
+            
+            Divider()
+            
+            Button("System Settings...") {
+                MenuBarController.shared.openSettings(tab: .system)
+            }
+            
+            Button("FlowDock Settings...") {
+                MenuBarController.shared.openSettings(tab: .general)
+            }
+        }
     }
 }
 

@@ -16,6 +16,7 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  command             Toggle the Raycast-style FlowDock Command Palette (⌥ Space)"
+    echo "  edit                Toggle App Launcher Edit Mode (wiggle & remove badges)"
     echo "  settings            Open FlowDock Preferences"
     echo "  enable              Start FlowDock and enable Apple Dock autohide"
     echo "  disable             Stop FlowDock and restore standard Apple Dock"
@@ -55,6 +56,11 @@ case "$1" in
             sleep 0.5
             killall -USR2 MiniDock 2>/dev/null || true
         fi
+        ;;
+
+    edit|edit-mode|edit-apps)
+        echo "==> Toggling FlowDock App Edit Mode..."
+        open "minidock://edit"
         ;;
 
     enable)
