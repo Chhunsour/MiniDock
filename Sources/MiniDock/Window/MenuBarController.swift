@@ -18,12 +18,22 @@ public final class MenuBarController: NSObject {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         guard let button = statusItem?.button else { return }
         
-        button.image = NSImage(systemSymbolName: "dock.rectangle", accessibilityDescription: "MiniDock")
-        button.toolTip = "MiniDock Controls"
+        button.image = NSImage(systemSymbolName: "flowchart.fill", accessibilityDescription: "FlowDock")
+        button.toolTip = "FlowDock Developer Command Center"
         
         let menu = NSMenu()
         
-        let settingsItem = NSMenuItem(title: "MiniDock Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        let commandItem = NSMenuItem(title: "Command Palette (⌥ Space)", action: #selector(openCommandPalette), keyEquivalent: "")
+        commandItem.target = self
+        menu.addItem(commandItem)
+        
+        let focusItem = NSMenuItem(title: "Toggle Focus Session", action: #selector(toggleFocus), keyEquivalent: "")
+        focusItem.target = self
+        menu.addItem(focusItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        let settingsItem = NSMenuItem(title: "FlowDock Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
         
@@ -39,7 +49,7 @@ public final class MenuBarController: NSObject {
         
         menu.addItem(NSMenuItem.separator())
         
-        let quitItem = NSMenuItem(title: "Quit MiniDock", action: #selector(quitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit FlowDock", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         
@@ -55,6 +65,14 @@ public final class MenuBarController: NSObject {
         )
     }
     
+    @objc public func openCommandPalette() {
+        CommandPaletteWindowController.shared.toggle()
+    }
+    
+    @objc public func toggleFocus() {
+        FocusService.shared.togglePlayPause()
+    }
+    
     @objc public func openSettings() {
         if let window = settingsWindow {
             window.makeKeyAndOrderFront(nil)
@@ -63,12 +81,12 @@ public final class MenuBarController: NSObject {
         }
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 380),
-            styleMask: [.titled, .closable],
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "MiniDock Preferences"
+        window.title = "FlowDock Settings"
         window.center()
         window.contentView = NSHostingView(rootView: SettingsView())
         window.isReleasedWhenClosed = false

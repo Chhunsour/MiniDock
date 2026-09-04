@@ -42,6 +42,33 @@ public final class MiniDockPanel: NSPanel {
             }
             .store(in: &cancellables)
         
+        TransientCapsuleManager.shared.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self?.reposition()
+                }
+            }
+            .store(in: &cancellables)
+            
+        AppLauncherService.shared.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self?.reposition()
+                }
+            }
+            .store(in: &cancellables)
+            
+        ProjectContextService.shared.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self?.reposition()
+                }
+            }
+            .store(in: &cancellables)
+        
         reposition()
     }
     

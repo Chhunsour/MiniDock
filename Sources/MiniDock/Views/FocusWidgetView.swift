@@ -4,68 +4,59 @@ import AppKit
 public struct FocusWidgetView: View {
     @ObservedObject private var focus = FocusService.shared
     @State private var showingPopover = false
+    @State private var isHovered = false
     
     public init() {}
     
     public var body: some View {
-        WidgetCardView {
-            Button(action: {
-                showingPopover.toggle()
-            }) {
-                HStack(spacing: 10) {
-                    // Mini progress ring
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.12), lineWidth: 3.5)
-                            .frame(width: 28, height: 28)
-                        
-                        Circle()
-                            .trim(from: 0.0, to: CGFloat(max(focus.progress, 0.04)))
-                            .stroke(
-                                LinearGradient(
-                                    colors: focus.isRunning ? [Color.orange, Color.yellow] : [Color.orange.opacity(0.6), Color.yellow.opacity(0.4)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 28, height: 28)
-                            .animation(.easeInOut(duration: 0.3), value: focus.progress)
-                        
-                        Image(systemName: focus.isRunning ? "bolt.fill" : "timer")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(focus.isRunning ? .orange : .white.opacity(0.7))
-                    }
+        Button(action: {
+            showingPopover.toggle()
+        }) {
+            HStack(spacing: 6) {
+                // Focus Dot / Icon
+                ZStack {
+                    Circle()
+                        .fill(focus.isRunning ? Color.orange : Color.white.opacity(0.18))
+                        .frame(width: 8, height: 8)
+                        .shadow(color: focus.isRunning ? Color.orange.opacity(0.8) : Color.clear, radius: 4)
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 5) {
-                            Text(focus.formattedRemainingTime)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundColor(.white)
-                                .fixedSize()
-                            
-                            if focus.isRunning {
-                                Circle()
-                                    .fill(Color.orange)
-                                    .frame(width: 5, height: 5)
-                                    .shadow(color: .orange, radius: 2)
-                            }
-                        }
-                        
-                        Text(focus.taskLabel)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.65))
-                            .fixedSize()
+                    if focus.isRunning {
+                        Circle()
+                            .stroke(Color.orange.opacity(0.4), lineWidth: 2)
+                            .frame(width: 14, height: 14)
                     }
-                    .frame(minWidth: 70, alignment: .leading)
+                }
+                .frame(width: 16, height: 16)
+                
+                if isHovered || focus.isRunning {
+                    Text(focus.isRunning ? focus.formattedRemainingTime : "\(focus.currentMode.durationSeconds / 60)m")
+                        .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .monospacedDigit()
+                        .transition(.opacity)
+                } else {
+                    Text("\(focus.currentMode.durationSeconds / 60)m")
+                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                        .monospacedDigit()
                 }
             }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showingPopover, arrowEdge: .top) {
-                FocusDetailPopover(focus: focus)
-            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.white.opacity(isHovered ? 0.09 : (focus.isRunning ? 0.07 : 0.03)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(focus.isRunning ? Color.orange.opacity(0.35) : Color.white.opacity(0.06), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help(focus.isRunning ? "Focus Active: \(focus.formattedRemainingTime)" : "Start Focus Session")
+        .popover(isPresented: $showingPopover, arrowEdge: .top) {
+            FocusDetailPopover(focus: focus)
         }
     }
 }

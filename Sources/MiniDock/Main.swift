@@ -8,7 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     private var dockPanel: MiniDockPanel?
     private var menuBarController: MenuBarController?
-    private var signalSource: DispatchSourceSignal?
+    private var sigusr1Source: DispatchSourceSignal?
+    private var sigusr2Source: DispatchSourceSignal?
     
     static func main() {
         let app = NSApplication.shared
@@ -20,10 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize menu bar item
+        // Initialize menu bar item & command palette
         menuBarController = MenuBarController.shared
+        _ = CommandPaletteWindowController.shared
+        _ = WorkspaceService.shared
         
-        // Create and present floating MiniDock panel
+        // Create and present edge-fused FlowDock panel
         dockPanel = MiniDockPanel()
         dockPanel?.orderFront(nil)
         
@@ -35,23 +38,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Start developer and productivity services
         SystemMonitorService.shared.updateStats()
         DevStackService.shared.scanServices()
-        RepoService.shared.findCandidateRepos()
-        RepoService.shared.refreshRepoStatus()
+        ProjectContextService.shared.findCandidateProjects()
+        ProjectContextService.shared.refreshProjectContext()
+        _ = ClipboardService.shared
         
-        // Setup SIGUSR1 signal handler for CLI `minidock settings`
+        // Setup SIGUSR1 signal handler for CLI `flowdock settings`
         signal(SIGUSR1, SIG_IGN)
-        let sigSource = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
-        sigSource.setEventHandler {
+        let s1 = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+        s1.setEventHandler {
             MenuBarController.shared.openSettings()
         }
-        sigSource.resume()
-        self.signalSource = sigSource
+        s1.resume()
+        self.sigusr1Source = s1
+        
+        // Setup SIGUSR2 signal handler for CLI `flowdock command`
+        signal(SIGUSR2, SIG_IGN)
+        let s2 = DispatchSource.makeSignalSource(signal: SIGUSR2, queue: .main)
+        s2.setEventHandler {
+            CommandPaletteWindowController.shared.toggle()
+        }
+        s2.resume()
+        self.sigusr2Source = s2
     }
     
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             if url.host == "settings" || url.path.contains("settings") {
                 MenuBarController.shared.openSettings()
+            } else if url.host == "command" || url.path.contains("command") {
+                CommandPaletteWindowController.shared.toggle()
             }
         }
     }

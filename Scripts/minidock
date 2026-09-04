@@ -10,19 +10,20 @@ if [ ! -d "$APP_PATH" ] && [ -d "$FALLBACK_APP_PATH" ]; then
 fi
 
 show_help() {
-    echo "MiniDock - Elegant Floating macOS Dock Replacement"
+    echo "FlowDock - Screen-Edge Native macOS Productivity Dock & Command Center"
     echo ""
-    echo "Usage: minidock [command]"
+    echo "Usage: flowdock [command]  (or minidock [command])"
     echo ""
     echo "Commands:"
-    echo "  enable              Start MiniDock and enable Apple Dock autohide"
-    echo "  disable             Stop MiniDock and restore standard Apple Dock"
+    echo "  command             Toggle the Raycast-style FlowDock Command Palette (⌥ Space)"
+    echo "  settings            Open FlowDock Preferences"
+    echo "  enable              Start FlowDock and enable Apple Dock autohide"
+    echo "  disable             Stop FlowDock and restore standard Apple Dock"
     echo "  restore-apple-dock  Safely restore Apple Dock to always visible"
-    echo "  status              Display current MiniDock & Apple Dock status"
-    echo "  settings            Open MiniDock preferences"
-    echo "  autostart enable    Configure MiniDock to launch automatically at login"
+    echo "  status              Display current FlowDock & Apple Dock status"
+    echo "  restart             Restart FlowDock"
+    echo "  autostart enable    Configure FlowDock to launch automatically at login"
     echo "  autostart disable   Disable launch at login"
-    echo "  restart             Restart MiniDock"
     echo ""
 }
 
@@ -36,7 +37,7 @@ get_apple_dock_status() {
     fi
 }
 
-get_minidock_status() {
+get_flowdock_status() {
     if pgrep -x "MiniDock" >/dev/null 2>&1; then
         echo "Running (PID: $(pgrep -x MiniDock | head -n 1))"
     else
@@ -45,27 +46,38 @@ get_minidock_status() {
 }
 
 case "$1" in
+    command|palette)
+        echo "==> Opening FlowDock Command Palette..."
+        if pgrep -x "MiniDock" >/dev/null 2>&1; then
+            killall -USR2 MiniDock 2>/dev/null || true
+        else
+            open "$APP_PATH"
+            sleep 0.5
+            killall -USR2 MiniDock 2>/dev/null || true
+        fi
+        ;;
+
     enable)
-        echo "==> Enabling MiniDock..."
+        echo "==> Enabling FlowDock..."
         echo "==> Setting Apple Dock to auto-hide..."
         defaults write com.apple.dock autohide -bool true
         killall Dock 2>/dev/null || true
         
-        echo "==> Launching MiniDock ($APP_PATH)..."
+        echo "==> Launching FlowDock ($APP_PATH)..."
         if ! pgrep -x "MiniDock" >/dev/null 2>&1; then
             open "$APP_PATH"
         fi
-        echo "MiniDock is now active."
+        echo "FlowDock is now active."
         ;;
         
     disable)
-        echo "==> Disabling MiniDock..."
+        echo "==> Disabling FlowDock..."
         killall MiniDock 2>/dev/null || true
         
         echo "==> Restoring Apple Dock..."
         defaults write com.apple.dock autohide -bool false
         killall Dock 2>/dev/null || true
-        echo "MiniDock disabled. Standard Apple Dock restored."
+        echo "FlowDock disabled. Standard Apple Dock restored."
         ;;
         
     restore-apple-dock)
@@ -76,7 +88,7 @@ case "$1" in
         ;;
         
     status)
-        echo "MiniDock Status:   $(get_minidock_status)"
+        echo "FlowDock Status:   $(get_flowdock_status)"
         echo "Apple Dock Status: $(get_apple_dock_status)"
         if [ -f "$PLIST_PATH" ]; then
             echo "Auto-Start:        Enabled ($PLIST_PATH)"
@@ -86,10 +98,8 @@ case "$1" in
         ;;
         
     settings)
-        echo "==> Opening MiniDock Settings..."
+        echo "==> Opening FlowDock Settings..."
         if pgrep -x "MiniDock" >/dev/null 2>&1; then
-            osascript -e 'tell application "MiniDock" to activate' 2>/dev/null || true
-            # Post notification to open settings
             killall -USR1 MiniDock 2>/dev/null || true
         else
             open "$APP_PATH"
@@ -136,18 +146,18 @@ PLIST_EOF
                 fi
                 ;;
             *)
-                echo "Usage: minidock autostart [enable|disable]"
+                echo "Usage: flowdock autostart [enable|disable]"
                 exit 1
                 ;;
         esac
         ;;
         
     restart)
-        echo "==> Restarting MiniDock..."
+        echo "==> Restarting FlowDock..."
         killall MiniDock 2>/dev/null || true
         sleep 0.5
         open "$APP_PATH"
-        echo "MiniDock restarted."
+        echo "FlowDock restarted."
         ;;
         
     *)

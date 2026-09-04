@@ -3,213 +3,225 @@ import AppKit
 
 public struct SystemWidgetView: View {
     @ObservedObject private var monitor = SystemMonitorService.shared
-    @ObservedObject private var settings = AppSettings.shared
-    @State private var showingPopover = false
+    @ObservedObject private var devStack = DevStackService.shared
+    @State private var showingDiagnostics = false
+    @State private var isHovered = false
     
     public init() {}
     
     public var body: some View {
-        WidgetCardView {
-            Button(action: {
-                showingPopover.toggle()
-            }) {
-                HStack(spacing: 10) {
-                    // Concentric Dual Activity Ring (CPU outer, RAM inner)
-                    ZStack {
-                        // Background tracks
-                        Circle()
-                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
-                            .frame(width: 32, height: 32)
-                        
-                        Circle()
-                            .stroke(Color.white.opacity(0.08), lineWidth: 2.5)
-                            .frame(width: 23, height: 23)
-                        
-                        // CPU ring (outer)
-                        Circle()
-                            .trim(from: 0.0, to: CGFloat(min(max(monitor.stats.cpuUsage / 100.0, 0.02), 1.0)))
-                            .stroke(
-                                LinearGradient(
-                                    colors: monitor.stats.cpuUsage > 75 ? [Color.orange, Color.red] : [Color.green, Color.mint],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 32, height: 32)
-                        
-                        // RAM ring (inner)
-                        Circle()
-                            .trim(from: 0.0, to: CGFloat(min(max(monitor.stats.ramUsage / 100.0, 0.02), 1.0)))
-                            .stroke(
-                                LinearGradient(
-                                    colors: monitor.stats.ramUsage > 80 ? [Color.orange, Color.red] : [Color.cyan, Color.blue],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 23, height: 23)
-                    }
+        let exceptions = monitor.stats.activeExceptions
+        let hasException = !exceptions.isEmpty
+        
+        Button(action: {
+            showingDiagnostics.toggle()
+        }) {
+            if hasException, let first = exceptions.first {
+                // Warning Capsule (Exception-First)
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(first.isCritical ? .red : .orange)
                     
-                    // Glanceable summary
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            HStack(spacing: 3) {
-                                Text("CPU")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.green)
-                                Text("\(Int(round(monitor.stats.cpuUsage)))%")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    .monospacedDigit()
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Text("·")
-                                .foregroundColor(.white.opacity(0.4))
-                            
-                            HStack(spacing: 3) {
-                                Text("RAM")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.cyan)
-                                Text("\(Int(round(monitor.stats.ramUsage)))%")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                                    .monospacedDigit()
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .fixedSize()
-                        
-                        // Network speed summary
-                        HStack(spacing: 6) {
-                            Text("↓ \(monitor.stats.formattedDownloadSpeed)")
-                            Text("↑ \(monitor.stats.formattedUploadSpeed)")
-                        }
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.55))
-                        .fixedSize()
+                    Text(first.title)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(first.isCritical ? .red : .orange)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill((first.isCritical ? Color.red : Color.orange).opacity(0.16))
+                        .overlay(
+                            Capsule()
+                                .stroke((first.isCritical ? Color.red : Color.orange).opacity(0.4), lineWidth: 1)
+                        )
+                )
+            } else {
+                // Quiet Resting Indicator
+                HStack(spacing: 4) {
+                    Image(systemName: "apple.logo")
+                        .font(.system(size: 11))
+                        .foregroundColor(isHovered ? .white : .white.opacity(0.45))
+                    
+                    if isHovered {
+                        Text("\(Int(monitor.stats.ramUsage))%")
+                            .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.7))
+                            .transition(.opacity.combined(with: .scale))
                     }
                 }
+                .frame(height: 24)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
+                )
             }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showingPopover, arrowEdge: .top) {
-                SystemDetailPopover(stats: monitor.stats)
-            }
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help("System Diagnostics · Activity Monitor")
+        .popover(isPresented: $showingDiagnostics, arrowEdge: .top) {
+            SystemDiagnosticsPopover(monitor: monitor, devStack: devStack)
         }
     }
 }
 
-private struct SystemDetailPopover: View {
-    let stats: SystemStats
+private struct SystemDiagnosticsPopover: View {
+    @ObservedObject var monitor: SystemMonitorService
+    @ObservedObject var devStack: DevStackService
     
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Header
             HStack {
-                Label("System Metrics", systemImage: "speedometer")
+                Label("System Diagnostics", systemImage: "gauge.with.needle")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
                 Button("Activity Monitor") {
                     if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
-                        NSWorkspace.shared.openApplication(at: appUrl, configuration: NSWorkspace.OpenConfiguration())
+                        NSWorkspace.shared.open(appUrl)
                     }
                 }
-                .font(.system(size: 11))
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .font(.system(size: 10, weight: .medium))
+                .buttonStyle(.borderless)
             }
             
-            Divider()
-                .background(Color.white.opacity(0.15))
+            Divider().background(Color.white.opacity(0.12))
             
-            // CPU Load
-            MetricRow(
-                icon: "cpu",
-                title: "CPU Load",
-                valueText: String(format: "%.1f%%", stats.cpuUsage),
-                percentage: stats.cpuUsage,
-                color: .green
-            )
-            
-            // Memory Load
-            MetricRow(
-                icon: "memorychip",
-                title: "Memory",
-                valueText: String(format: "%.1f / %.1f GB (%.0f%%)", stats.ramUsedGB, stats.ramTotalGB, stats.ramUsage),
-                percentage: stats.ramUsage,
-                color: .cyan
-            )
-            
-            // Disk Space
-            MetricRow(
-                icon: "internaldrive",
-                title: "SSD Storage",
-                valueText: String(format: "%.1f / %.1f GB", stats.diskUsedGB, stats.diskTotalGB),
-                percentage: stats.diskUsage,
-                color: .purple
-            )
-            
-            Divider()
-                .background(Color.white.opacity(0.15))
-            
-            // Network Throughput
-            HStack {
-                Image(systemName: "arrow.up.arrow.down")
-                    .foregroundColor(.orange)
-                    .font(.system(size: 12))
-                Text("Network Throughput")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
-                Spacer()
-                HStack(spacing: 8) {
-                    Text("↓ \(stats.formattedDownloadSpeed)")
-                    Text("↑ \(stats.formattedUploadSpeed)")
+            // Metrics Grid
+            VStack(spacing: 10) {
+                // CPU
+                MetricRowView(
+                    icon: "cpu",
+                    title: "CPU Load",
+                    value: String(format: "%.1f%%", monitor.stats.cpuUsage),
+                    progress: monitor.stats.cpuUsage / 100.0,
+                    barColor: monitor.stats.cpuUsage > 80 ? .orange : .blue
+                )
+                
+                // RAM
+                MetricRowView(
+                    icon: "memorychip",
+                    title: "Memory (RAM)",
+                    value: "\(String(format: "%.1f", monitor.stats.ramUsedGB)) / \(String(format: "%.0f", monitor.stats.ramTotalGB)) GB",
+                    progress: monitor.stats.ramUsage / 100.0,
+                    barColor: monitor.stats.ramUsage > 85 ? .orange : .purple
+                )
+                
+                // Disk
+                MetricRowView(
+                    icon: "internaldrive",
+                    title: "Macintosh HD",
+                    value: "\(String(format: "%.0f", monitor.stats.diskFreeGB)) GB free",
+                    progress: monitor.stats.diskUsage / 100.0,
+                    barColor: monitor.stats.diskFreeGB < 12 ? .red : .mint
+                )
+                
+                // Network
+                HStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                        Text(monitor.stats.formattedDownloadSpeed)
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.circle")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cyan)
+                        Text(monitor.stats.formattedUploadSpeed)
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
                 }
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .padding(.top, 2)
+            }
+            
+            // Docker & Dev Stack Status
+            if devStack.dockerRunning || !devStack.activeServices.isEmpty {
+                Divider().background(Color.white.opacity(0.12))
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("DEV SERVICES")
+                        .font(.system(size: 9.5, weight: .bold))
+                        .foregroundColor(.white.opacity(0.45))
+                    
+                    if devStack.dockerRunning {
+                        HStack {
+                            Image(systemName: "cube.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.blue)
+                            Text("Docker Engine")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text("\(devStack.dockerContainersCount) containers")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
+                    }
+                    
+                    ForEach(devStack.activeServices.prefix(3)) { s in
+                        HStack {
+                            Circle().fill(Color.green).frame(width: 4, height: 4)
+                            Text(s.name)
+                                .font(.system(size: 10.5, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Text(":\(s.port)")
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.55))
+                        }
+                    }
+                }
             }
         }
-        .padding(16)
+        .padding(14)
         .frame(width: 280)
-        .background(Color.black.opacity(0.92))
+        .background(Color(red: 0.12, green: 0.12, blue: 0.15))
     }
 }
 
-private struct MetricRow: View {
+private struct MetricRowView: View {
     let icon: String
     let title: String
-    let valueText: String
-    let percentage: Double
-    let color: Color
+    let value: String
+    let progress: Double
+    let barColor: Color
     
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 4) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.system(size: 11))
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.6))
+                    .frame(width: 14)
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.white.opacity(0.85))
                 Spacer()
-                Text(valueText)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                Text(value)
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
             }
             
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(height: 5)
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 4)
                     Capsule()
-                        .fill(color)
-                        .frame(width: max(geo.size.width * CGFloat(min(max(percentage / 100.0, 0.0), 1.0)), 4), height: 5)
+                        .fill(barColor)
+                        .frame(width: max(geo.size.width * CGFloat(min(progress, 1.0)), 3), height: 4)
                 }
             }
-            .frame(height: 5)
+            .frame(height: 4)
         }
     }
 }

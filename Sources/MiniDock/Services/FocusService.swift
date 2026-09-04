@@ -144,6 +144,29 @@ public final class FocusService: ObservableObject {
         remainingSeconds -= 1
     }
     
+    public func startCustomDuration(minutes: Int, label: String = "Deep Work") {
+        self.totalSeconds = minutes * 60
+        self.remainingSeconds = minutes * 60
+        self.taskLabel = label
+        self.isRunning = true
+        self.isPaused = false
+        
+        timer?.cancel()
+        timer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.tick()
+            }
+        
+        TransientCapsuleManager.shared.post(
+            icon: "timer",
+            title: "Focus Started",
+            detail: "\(label) · \(minutes)m",
+            color: .blue,
+            duration: 3.0
+        )
+    }
+    
     private func completeSession() {
         timer?.cancel()
         timer = nil
@@ -153,6 +176,13 @@ public final class FocusService: ObservableObject {
         if currentMode == .focus25 || currentMode == .focus50 {
             completedSessions += 1
             NSSound(named: "Glass")?.play()
+            TransientCapsuleManager.shared.post(
+                icon: "sparkles",
+                title: "Focus Complete!",
+                detail: "Great work · Take a 5m break",
+                color: .green,
+                duration: 4.5
+            )
             // Suggest break
             switchMode(.shortBreak)
         } else {
