@@ -194,6 +194,16 @@ public struct SettingsView: View {
                 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
+                        Text("Screen-Edge Flare Depth")
+                        Spacer()
+                        Text("\(Int(settings.flareWidth)) pt")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $settings.flareWidth, in: 36...72, step: 2)
+                }
+                
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
                         Text("Ambient Edge Glow")
                         Spacer()
                         Text(String(format: "%.0f%%", settings.subtleGlowAmount * 100))
@@ -201,6 +211,15 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.subtleGlowAmount, in: 0.0...0.6, step: 0.02)
                 }
+            }
+            
+            Section("Material & Translucency") {
+                Picker("Surface Material", selection: $settings.materialStyle) {
+                    Text("Dark Glass").tag("Dark Glass")
+                    Text("Obsidian Vantablack").tag("Obsidian Vantablack")
+                    Text("System Frost").tag("System Frost")
+                }
+                .pickerStyle(.segmented)
             }
             
             Section("Accent Color") {

@@ -105,7 +105,9 @@ case "$1" in
         
     settings)
         echo "==> Opening FlowDock Settings..."
-        if pgrep -x "MiniDock" >/dev/null 2>&1; then
+        if [ -n "$2" ]; then
+            open "minidock://settings/$2"
+        elif pgrep -x "MiniDock" >/dev/null 2>&1; then
             killall -USR1 MiniDock 2>/dev/null || true
         else
             open "$APP_PATH"

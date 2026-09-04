@@ -69,6 +69,12 @@ public final class AppSettings: ObservableObject {
     @Published public var cornerRadius: Double {
         didSet { defaults.set(cornerRadius, forKey: "cornerRadius") }
     }
+    @Published public var flareWidth: Double {
+        didSet { defaults.set(flareWidth, forKey: "flareWidth") }
+    }
+    @Published public var materialStyle: String {
+        didSet { defaults.set(materialStyle, forKey: "materialStyle") }
+    }
     @Published public var backgroundOpacity: Double {
         didSet { defaults.set(backgroundOpacity, forKey: "backgroundOpacity") }
     }
@@ -164,11 +170,13 @@ public final class AppSettings: ObservableObject {
 
     private init() {
         self.dockScale = defaults.object(forKey: "dockScale") as? Double ?? 1.0
-        self.iconSize = defaults.object(forKey: "iconSize") as? Double ?? 28.0
-        self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 8.0
-        self.cornerRadius = defaults.object(forKey: "cornerRadius") as? Double ?? 24.0
-        self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 0.88
-        self.subtleGlowAmount = defaults.object(forKey: "subtleGlowAmount") as? Double ?? 0.22
+        self.iconSize = defaults.object(forKey: "iconSize") as? Double ?? 34.0
+        self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 12.0
+        self.cornerRadius = defaults.object(forKey: "cornerRadius") as? Double ?? 22.0
+        self.flareWidth = defaults.object(forKey: "flareWidth") as? Double ?? 52.0
+        self.materialStyle = defaults.string(forKey: "materialStyle") ?? "Dark Glass"
+        self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 0.90
+        self.subtleGlowAmount = defaults.object(forKey: "subtleGlowAmount") as? Double ?? 0.14
         
         self.useSystemAccent = defaults.object(forKey: "useSystemAccent") as? Bool ?? true
         self.accentColorName = defaults.string(forKey: "accentColorName") ?? "System"
@@ -198,11 +206,13 @@ public final class AppSettings: ObservableObject {
     
     public func resetToDefaults() {
         self.dockScale = 1.0
-        self.iconSize = 28.0
-        self.dockSpacing = 8.0
-        self.cornerRadius = 24.0
-        self.backgroundOpacity = 0.88
-        self.subtleGlowAmount = 0.22
+        self.iconSize = 34.0
+        self.dockSpacing = 12.0
+        self.cornerRadius = 22.0
+        self.flareWidth = 52.0
+        self.materialStyle = "Dark Glass"
+        self.backgroundOpacity = 0.90
+        self.subtleGlowAmount = 0.14
         self.useSystemAccent = true
         self.accentColorName = "System"
         self.dockBehavior = "Always Visible"

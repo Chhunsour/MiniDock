@@ -3,52 +3,56 @@ import AppKit
 
 public struct AppLauncherWidgetView: View {
     @ObservedObject private var launcherService = AppLauncherService.shared
+    @ObservedObject private var settings = AppSettings.shared
     @State private var isAddHovered = false
     
     public init() {}
     
     public var body: some View {
         let displayedApps = launcherService.isEditMode ? launcherService.apps : launcherService.visibleApps
+        let iconSpacing = CGFloat(settings.dockSpacing) + 2
         
-        WidgetCardView {
-            HStack(spacing: launcherService.isEditMode ? 10 : 11) {
-                ForEach(displayedApps) { app in
-                    AppIconSlotView(app: app)
-                }
-                
-                // Inline Add Button
+        HStack(spacing: launcherService.isEditMode ? max(iconSpacing, 10) : iconSpacing) {
+            ForEach(displayedApps) { app in
+                AppIconSlotView(app: app)
+            }
+            
+            // Inline Add Button
+            Button(action: {
+                AppPickerWindowController.shared.present()
+            }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isAddHovered ? .white : .white.opacity(0.35))
+                    .frame(width: 22, height: 26)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Color.white.opacity(isAddHovered ? 0.12 : 0.04))
+                    )
+            }
+            .buttonStyle(.plain)
+            .help("Add Application to Dock")
+            .onHover { isAddHovered = $0 }
+            
+            if launcherService.isEditMode {
                 Button(action: {
-                    AppPickerWindowController.shared.present()
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        launcherService.isEditMode = false
+                    }
                 }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(isAddHovered ? .white : .white.opacity(0.45))
-                        .frame(width: 20, height: 26)
+                    Text("Done")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
                         .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.white.opacity(isAddHovered ? 0.14 : 0.04))
+                            Capsule()
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.2), radius: 3, y: 1)
                         )
                 }
                 .buttonStyle(.plain)
-                .help("Add Application to Dock")
-                .onHover { isAddHovered = $0 }
-                
-                if launcherService.isEditMode {
-                    Button(action: {
-                        withAnimation {
-                            launcherService.isEditMode = false
-                        }
-                    }) {
-                        Text("Done")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white)
-                            .cornerRadius(6)
-                    }
-                    .buttonStyle(.plain)
-                }
+                .transition(.scale.combined(with: .opacity))
             }
         }
     }
@@ -67,6 +71,7 @@ private struct AppIconSlotView: View {
         let isEditMode = launcherService.isEditMode
         let icon = app.icon
         let iconSize = CGFloat(settings.iconSize)
+        let squircleRadius = max(iconSize * 0.2237, 6)
         
         ZStack(alignment: .topTrailing) {
             Button(action: handleTap) {
@@ -75,16 +80,19 @@ private struct AppIconSlotView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: iconSize, height: iconSize)
-                        .cornerRadius(max(iconSize * 0.22, 5))
+                        .clipShape(RoundedRectangle(cornerRadius: squircleRadius, style: .continuous))
                         .shadow(
-                            color: (settings.runningIndicatorStyle == "Glow" && isRunning) ? settings.activeAccentColor.opacity(0.8) : (isHovered ? Color.white.opacity(0.35) : Color.black.opacity(0.3)),
-                            radius: (settings.runningIndicatorStyle == "Glow" && isRunning) ? 6 : (isHovered ? 5 : 2),
+                            color: (settings.runningIndicatorStyle == "Glow" && isRunning)
+                                ? settings.activeAccentColor.opacity(0.7)
+                                : (isHovered && !isEditMode ? Color.black.opacity(0.42) : Color.black.opacity(0.26)),
+                            radius: (settings.runningIndicatorStyle == "Glow" && isRunning) ? 6 : (isHovered && !isEditMode ? 7 : 2.5),
                             x: 0,
-                            y: 1
+                            y: (isHovered && !isEditMode ? 3 : 1)
                         )
-                        .scaleEffect(isPressed ? 0.90 : (isHovered && !isEditMode ? 1.15 : 1.0))
-                        .rotationEffect(.degrees(isEditMode ? (wiggle ? 1.8 : -1.8) : 0))
-                        .animation(isEditMode ? .easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .default, value: wiggle)
+                        .scaleEffect(isPressed ? 0.94 : (isHovered && !isEditMode ? 1.06 : 1.0))
+                        .rotationEffect(.degrees(isEditMode ? (wiggle ? 1.6 : -1.6) : 0))
+                        .animation(isEditMode ? .easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .spring(response: 0.22, dampingFraction: 0.72), value: isHovered)
+                        .animation(.spring(response: 0.18, dampingFraction: 0.70), value: isPressed)
                         .onAppear {
                             if isEditMode { wiggle = true }
                         }
@@ -92,10 +100,10 @@ private struct AppIconSlotView: View {
                             wiggle = active
                         }
                     
-                    // Active Running Indicator
+                    // Whisper-Quiet Running Indicator
                     indicatorView(isRunning: isRunning)
                 }
-                .frame(width: max(iconSize, 32), height: iconSize + 10)
+                .frame(width: max(iconSize + 2, 32), height: iconSize + 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -168,18 +176,21 @@ private struct AppIconSlotView: View {
         switch settings.runningIndicatorStyle {
         case "Bar":
             Capsule()
-                .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
-                .frame(width: 12, height: 2.5)
-                .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
+                .fill(isRunning ? Color.white.opacity(0.85) : Color.clear)
+                .frame(width: 8, height: 2.2)
+                .shadow(color: isRunning ? Color.white.opacity(0.35) : Color.clear, radius: 1.5)
         case "Glow":
-            Color.clear.frame(height: 3)
+            Circle()
+                .fill(isRunning ? settings.activeAccentColor.opacity(0.8) : Color.clear)
+                .frame(width: 3.5, height: 3.5)
+                .shadow(color: isRunning ? settings.activeAccentColor.opacity(0.6) : Color.clear, radius: 3)
         case "Off":
             Color.clear.frame(height: 3)
         default: // "Dot"
             Circle()
-                .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
+                .fill(isRunning ? Color.white.opacity(0.85) : Color.clear)
                 .frame(width: 3.5, height: 3.5)
-                .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
+                .shadow(color: isRunning ? Color.white.opacity(0.35) : Color.clear, radius: 1.5)
         }
     }
     

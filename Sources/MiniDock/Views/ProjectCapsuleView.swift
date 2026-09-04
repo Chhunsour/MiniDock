@@ -14,61 +14,61 @@ public struct ProjectCapsuleView: View {
         Button(action: {
             showingDetailPopover.toggle()
         }) {
-            HStack(spacing: 8) {
-                // Stack or folder icon
+            HStack(spacing: 7) {
+                // Stack or folder icon (neutral restrained aesthetic)
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(isHovered ? 0.25 : 0.15))
-                        .frame(width: 24, height: 24)
+                        .fill(Color.white.opacity(isHovered ? 0.12 : 0.05))
+                        .frame(width: 22, height: 22)
                     
                     Image(systemName: p.primaryStack.icon)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.blue)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(isHovered ? .white : .white.opacity(0.85))
                 }
                 
                 VStack(alignment: .leading, spacing: 1.5) {
                     HStack(spacing: 4) {
                         Text(p.name)
-                            .font(.system(size: 11.5, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.95))
                             .lineLimit(1)
                         
                         if p.isClean {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 8, weight: .black))
-                                .foregroundColor(.green)
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(Color.green.opacity(0.85))
                         } else {
                             Text("+\(p.gitDirtyCount)")
-                                .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                                .foregroundColor(.orange)
+                                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color.orange.opacity(0.90))
                         }
                     }
                     
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Text(p.gitBranch)
-                            .font(.system(size: 9.5, weight: .medium, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.6))
+                            .font(.system(size: 9, weight: .regular, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.50))
                             .lineLimit(1)
                         
                         if p.gitAheadCount > 0 {
                             Text("↑\(p.gitAheadCount)")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.cyan)
+                                .font(.system(size: 8.5, weight: .semibold))
+                                .foregroundColor(Color.cyan.opacity(0.85))
                         }
                         
                         if p.gitBehindCount > 0 {
                             Text("↓\(p.gitBehindCount)")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.orange)
+                                .font(.system(size: 8.5, weight: .semibold))
+                                .foregroundColor(Color.orange.opacity(0.85))
                         }
                     }
                 }
                 .fixedSize()
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 7)
             .padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
             )
         }

@@ -65,7 +65,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls {
             let spec = ((url.host ?? "") + "/" + url.path).lowercased()
             if spec.contains("settings") {
-                MenuBarController.shared.openSettings()
+                if spec.contains("appearance") {
+                    MenuBarController.shared.openSettings(tab: .appearance)
+                } else if spec.contains("apps") {
+                    MenuBarController.shared.openSettings(tab: .apps)
+                } else if spec.contains("projects") {
+                    MenuBarController.shared.openSettings(tab: .projects)
+                } else if spec.contains("focus") {
+                    MenuBarController.shared.openSettings(tab: .focus)
+                } else {
+                    MenuBarController.shared.openSettings()
+                }
             } else if spec.contains("command") {
                 CommandPaletteWindowController.shared.toggle()
             } else if spec.contains("edit") {

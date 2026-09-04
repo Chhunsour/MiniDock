@@ -11,8 +11,10 @@ public struct DockContainerView: View {
     public init() {}
     
     public var body: some View {
+        let flareWidth = CGFloat(settings.flareWidth)
         let dockSpacing = CGFloat(settings.dockSpacing) + (isDockHovered ? 2 : 0)
         let radius = CGFloat(settings.cornerRadius)
+        let sideClearance = max(flareWidth + 12, 46)
         
         HStack(spacing: dockSpacing) {
             // 1. Focus Pill (Minimal ◉ 25m)
@@ -66,44 +68,66 @@ public struct DockContainerView: View {
             .help("FlowDock Command Palette (⌥ Space)")
         }
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, 28) // Clearance for left & right concave fillet flares
-        .padding(.top, isDockHovered ? 8 : 6)
-        .padding(.bottom, isDockHovered ? 6 : 5)
+        .padding(.horizontal, sideClearance) // Generous clearance for sculpted organic bezier shoulders
+        .padding(.top, isDockHovered ? 9 : 8)
+        .padding(.bottom, isDockHovered ? 7 : 6)
         .background(
             ZStack {
-                // Glass material
-                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
-                    .fill(.ultraThinMaterial)
+                // Glass material layer
+                switch settings.materialStyle {
+                case "Obsidian Vantablack":
+                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
+                        .fill(Color(red: 0.03, green: 0.03, blue: 0.04))
+                case "System Frost":
+                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
+                        .fill(.regularMaterial)
+                default: // "Dark Glass"
+                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
+                        .fill(.ultraThinMaterial)
+                }
                 
                 // Deep obsidian gradient fading smoothly into bottom monitor bezel
-                EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
+                EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
                     .fill(
                         LinearGradient(
-                            colors: [
-                                Color(red: 0.10, green: 0.10, blue: 0.13).opacity(settings.backgroundOpacity),
-                                Color(red: 0.04, green: 0.04, blue: 0.06).opacity(min(settings.backgroundOpacity + 0.08, 1.0))
+                            stops: [
+                                .init(color: Color(red: 0.12, green: 0.12, blue: 0.15).opacity(settings.backgroundOpacity * 0.95), location: 0.0),
+                                .init(color: Color(red: 0.06, green: 0.06, blue: 0.08).opacity(settings.backgroundOpacity), location: 0.40),
+                                .init(color: Color(red: 0.01, green: 0.01, blue: 0.02).opacity(min(settings.backgroundOpacity + 0.08, 1.0)), location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                
+                // Subtle inner ambient highlight along the crest
+                EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(isDockHovered ? 0.08 : 0.04), location: 0.0),
+                                .init(color: Color.white.opacity(0.0), location: 0.40)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
             }
-            .contentShape(EdgeFusedDockShape(flareWidth: 26, filletRadius: 20, cornerRadius: radius))
+            .contentShape(EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius))
             .contextMenu {
                 dockContextMenu
             }
         )
         .overlay(
-            // Hairline rim highlighting that dissolves gracefully into the bottom bezel
-            EdgeFusedDockRim(flareWidth: 26, filletRadius: 20, cornerRadius: radius)
+            // Hairline specular crest highlight that vanishes at the shoulders
+            EdgeFusedDockRim(flareWidth: flareWidth, cornerRadius: radius)
                 .stroke(
                     LinearGradient(
                         stops: [
                             .init(color: Color.white.opacity(0.0), location: 0.0),
-                            .init(color: Color.white.opacity(0.12), location: 0.06),
-                            .init(color: Color.white.opacity(isDockHovered ? 0.32 : 0.22), location: 0.25),
-                            .init(color: Color.white.opacity(isDockHovered ? 0.32 : 0.22), location: 0.75),
-                            .init(color: Color.white.opacity(0.12), location: 0.94),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.28 : 0.18), location: 0.15),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.40 : 0.28), location: 0.50),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.28 : 0.18), location: 0.85),
                             .init(color: Color.white.opacity(0.0), location: 1.0)
                         ],
                         startPoint: .leading,
@@ -113,11 +137,11 @@ public struct DockContainerView: View {
                 )
                 .allowsHitTesting(false)
         )
-        // Accent edge ambient glow (live reacting to settings)
-        .shadow(color: settings.activeAccentColor.opacity(settings.subtleGlowAmount), radius: isDockHovered ? 20 : 12, x: 0, y: -3)
-        // Upward ambient shadow onto desktop wallpaper
-        .shadow(color: Color.black.opacity(isDockHovered ? 0.65 : 0.50), radius: isDockHovered ? 28 : 20, x: 0, y: -4)
-        .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: -1)
+        // Restrained ambient elevation shadows
+        .shadow(color: Color.black.opacity(isDockHovered ? 0.55 : 0.40), radius: isDockHovered ? 26 : 18, x: 0, y: -4)
+        .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: -1)
+        // Subtle accent rim reflection only if enabled
+        .shadow(color: settings.activeAccentColor.opacity(settings.subtleGlowAmount * 0.7), radius: isDockHovered ? 16 : 10, x: 0, y: -2)
         .scaleEffect(settings.dockScale)
         .onHover { hovering in
             withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
@@ -128,6 +152,7 @@ public struct DockContainerView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.dockScale)
         .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.dockSpacing)
         .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.cornerRadius)
+        .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.flareWidth)
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.keyCode == 53 { // ESC
@@ -282,9 +307,9 @@ public struct DockContainerView: View {
 
 private struct SectionDivider: View {
     var body: some View {
-        Divider()
-            .frame(height: 18)
-            .background(Color.white.opacity(0.10))
-            .padding(.horizontal, 2)
+        Rectangle()
+            .fill(Color.white.opacity(0.08))
+            .frame(width: 1, height: 16)
+            .padding(.horizontal, 3)
     }
 }

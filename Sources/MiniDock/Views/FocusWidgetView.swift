@@ -12,44 +12,44 @@ public struct FocusWidgetView: View {
         Button(action: {
             showingPopover.toggle()
         }) {
-            HStack(spacing: 6) {
-                // Focus Dot / Icon
+            HStack(spacing: 5) {
+                // Focus Dot
                 ZStack {
                     Circle()
-                        .fill(focus.isRunning ? Color.orange : Color.white.opacity(0.18))
-                        .frame(width: 8, height: 8)
+                        .fill(focus.isRunning ? Color.orange : Color.white.opacity(0.25))
+                        .frame(width: 7, height: 7)
                         .shadow(color: focus.isRunning ? Color.orange.opacity(0.8) : Color.clear, radius: 4)
                     
                     if focus.isRunning {
                         Circle()
-                            .stroke(Color.orange.opacity(0.4), lineWidth: 2)
-                            .frame(width: 14, height: 14)
+                            .stroke(Color.orange.opacity(0.35), lineWidth: 1.5)
+                            .frame(width: 12, height: 12)
                     }
                 }
-                .frame(width: 16, height: 16)
+                .frame(width: 14, height: 14)
                 
                 if isHovered || focus.isRunning {
                     Text(focus.isRunning ? focus.formattedRemainingTime : "\(focus.currentMode.durationSeconds / 60)m")
-                        .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .monospacedDigit()
                         .transition(.opacity)
                 } else {
                     Text("\(focus.currentMode.durationSeconds / 60)m")
-                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.80))
                         .monospacedDigit()
                 }
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.white.opacity(isHovered ? 0.09 : (focus.isRunning ? 0.07 : 0.03)))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(focus.isRunning ? Color.orange.opacity(0.35) : Color.white.opacity(0.06), lineWidth: 1)
-                    )
+                Capsule()
+                    .fill(Color.white.opacity(isHovered ? 0.09 : (focus.isRunning ? 0.07 : 0.02)))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(focus.isRunning ? Color.orange.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
