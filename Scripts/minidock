@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -e
+
+APP_PATH="/Applications/MiniDock.app"
+FALLBACK_APP_PATH="$HOME/Projects/MiniDock/MiniDock.app"
+PLIST_PATH="$HOME/Library/LaunchAgents/com.user.minidock.plist"
+
+if [ ! -d "$APP_PATH" ] && [ -d "$FALLBACK_APP_PATH" ]; then
+    APP_PATH="$FALLBACK_APP_PATH"
+fi
+
+show_help() {
+    echo "MiniDock - Elegant Floating macOS Dock Replacement"
+    echo ""
+    echo "Usage: minidock [command]"
+    echo ""
+    echo "Commands:"
+    echo "  enable              Start MiniDock and enable Apple Dock autohide"
+    echo "  disable             Stop MiniDock and restore standard Apple Dock"
+    echo "  restore-apple-dock  Safely restore Apple Dock to always visible"
+    echo "  status              Display current MiniDock & Apple Dock status"
+    echo "  settings            Open MiniDock preferences"
+    echo "  autostart enable    Configure MiniDock to launch automatically at login"
+    echo "  autostart disable   Disable launch at login"
+    echo "  restart             Restart MiniDock"
+    echo ""
+}
+
+get_apple_dock_status() {
+    local val
+    val=$(defaults read com.apple.dock autohide 2>/dev/null || echo "0")
+    if [ "$val" = "1" ] || [ "$val" = "true" ]; then
+        echo "Auto-Hidden"
+    else
+        echo "Visible"
+    fi
+}
+
+get_minidock_status() {
+    if pgrep -x "MiniDock" >/dev/null 2>&1; then
+        echo "Running (PID: $(pgrep -x MiniDock | head -n 1))"
+    else
+        echo "Stopped"
+    fi
+}
+
+case "$1" in
+    enable)
+        echo "==> Enabling MiniDock..."
+        echo "==> Setting Apple Dock to auto-hide..."
+        defaults write com.apple.dock autohide -bool true
+        killall Dock 2>/dev/null || true
+        
+        echo "==> Launching MiniDock ($APP_PATH)..."
+        if ! pgrep -x "MiniDock" >/dev/null 2>&1; then
+            open "$APP_PATH"
+        fi
+        echo "MiniDock is now active."
+        ;;
+        
+    disable)
+        echo "==> Disabling MiniDock..."
+        killall MiniDock 2>/dev/null || true
+        
+        echo "==> Restoring Apple Dock..."
+        defaults write com.apple.dock autohide -bool false
+        killall Dock 2>/dev/null || true
+        echo "MiniDock disabled. Standard Apple Dock restored."
+        ;;
+        
+    restore-apple-dock)
+        echo "==> Safely restoring Apple Dock..."
+        defaults write com.apple.dock autohide -bool false
+        killall Dock 2>/dev/null || true
+        echo "Standard Apple Dock has been restored."
+        ;;
+        
+    status)
+        echo "MiniDock Status:   $(get_minidock_status)"
+        echo "Apple Dock Status: $(get_apple_dock_status)"
+        if [ -f "$PLIST_PATH" ]; then
+            echo "Auto-Start:        Enabled ($PLIST_PATH)"
+        else
+            echo "Auto-Start:        Disabled"
+        fi
+        ;;
+        
+    settings)
+        echo "==> Opening MiniDock Settings..."
+        if pgrep -x "MiniDock" >/dev/null 2>&1; then
+            osascript -e 'tell application "MiniDock" to activate' 2>/dev/null || true
+            # Post notification to open settings
+            killall -USR1 MiniDock 2>/dev/null || true
+        else
+            open "$APP_PATH"
+        fi
+        ;;
+        
+    autostart)
+        case "$2" in
+            enable)
+                mkdir -p "$HOME/Library/LaunchAgents"
+                cat << PLIST_EOF > "$PLIST_PATH"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.minidock</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/open</string>
+        <string>-a</string>
+        <string>$APP_PATH</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+</dict>
+</plist>
+PLIST_EOF
+                launchctl unload "$PLIST_PATH" 2>/dev/null || true
+                launchctl load "$PLIST_PATH"
+                echo "Auto-start enabled at login via LaunchAgent."
+                ;;
+            disable)
+                if [ -f "$PLIST_PATH" ]; then
+                    launchctl unload "$PLIST_PATH" 2>/dev/null || true
+                    rm -f "$PLIST_PATH"
+                    echo "Auto-start disabled."
+                else
+                    echo "Auto-start was not configured."
+                fi
+                ;;
+            *)
+                echo "Usage: minidock autostart [enable|disable]"
+                exit 1
+                ;;
+        esac
+        ;;
+        
+    restart)
+        echo "==> Restarting MiniDock..."
+        killall MiniDock 2>/dev/null || true
+        sleep 0.5
+        open "$APP_PATH"
+        echo "MiniDock restarted."
+        ;;
+        
+    *)
+        show_help
+        ;;
+esac
