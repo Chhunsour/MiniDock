@@ -14,18 +14,18 @@ public struct WidgetCardView<Content: View>: View {
     public var body: some View {
         content
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.white.opacity(isHovered ? 0.08 : 0.04))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(
                         LinearGradient(
                             colors: [
                                 Color.white.opacity(isHovered ? 0.22 : 0.12),
-                                Color.white.opacity(isHovered ? 0.10 : 0.04)
+                                Color.white.opacity(isHovered ? 0.08 : 0.03)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -33,9 +33,8 @@ public struct WidgetCardView<Content: View>: View {
                         lineWidth: 1
                     )
             )
-            .shadow(color: isHovered ? Color.black.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
             .scaleEffect(isHovered ? 1.015 : 1.0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.76), value: isHovered)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
             .onHover { hovering in
                 isHovered = hovering
                 onHoverChanged?(hovering)

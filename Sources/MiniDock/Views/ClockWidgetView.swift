@@ -12,12 +12,6 @@ public struct ClockWidgetView: View {
         return formatter
     }
     
-    private var secondsFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "ss"
-        return formatter
-    }
-    
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE, MMM d"
@@ -33,29 +27,21 @@ public struct ClockWidgetView: View {
                     NSWorkspace.shared.openApplication(at: appUrl, configuration: NSWorkspace.OpenConfiguration())
                 }
             }) {
-                HStack(alignment: .center, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(timeFormatter.string(from: currentTime))
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundColor(.white)
-                            
-                            Text(secondsFormatter.string(from: currentTime))
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(timeFormatter.string(from: currentTime))
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundColor(.white)
                         .fixedSize()
-                        
-                        Text(dateFormatter.string(from: currentTime))
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.7))
-                            .fixedSize()
-                    }
+                    
+                    Text(dateFormatter.string(from: currentTime))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.65))
+                        .fixedSize()
                 }
-                .fixedSize()
             }
             .buttonStyle(.plain)
+            .help("Open Calendar")
         }
         .onAppear {
             timer = Timer.publish(every: 1.0, on: .main, in: .common)

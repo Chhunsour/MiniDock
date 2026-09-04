@@ -10,13 +10,7 @@ public struct AppLauncherWidgetView: View {
     
     public var body: some View {
         WidgetCardView {
-            LazyVGrid(
-                columns: [
-                    GridItem(.fixed(28), spacing: 8),
-                    GridItem(.fixed(28), spacing: 8)
-                ],
-                spacing: 6
-            ) {
+            HStack(spacing: 12) {
                 ForEach(launcherService.apps) { app in
                     AppIconCell(
                         app: app,
@@ -56,18 +50,18 @@ private struct AppIconCell: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Image(nsImage: icon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-                    .cornerRadius(5)
-                    .shadow(color: isHovered ? Color.white.opacity(0.3) : Color.black.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 1)
-                    .scaleEffect(isPressed ? 0.88 : (isHovered ? 1.12 : 1.0))
+                    .frame(width: 28, height: 28)
+                    .cornerRadius(6)
+                    .shadow(color: isHovered ? Color.white.opacity(0.35) : Color.black.opacity(0.3), radius: isHovered ? 5 : 2, x: 0, y: 1)
+                    .scaleEffect(isPressed ? 0.90 : (isHovered ? 1.15 : 1.0))
                 
-                // Active Running Dot Indicator (like macOS Dock)
+                // Active Running Dot Indicator
                 Circle()
-                    .fill(isRunning ? Color.white.opacity(0.85) : Color.clear)
+                    .fill(isRunning ? Color.white.opacity(0.9) : Color.clear)
                     .frame(width: 3.5, height: 3.5)
                     .shadow(color: isRunning ? Color.white.opacity(0.6) : Color.clear, radius: 2)
             }

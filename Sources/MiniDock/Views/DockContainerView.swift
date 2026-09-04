@@ -7,44 +7,61 @@ public struct DockContainerView: View {
     public init() {}
     
     public var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            // 1. Clock
             if settings.showClock {
                 ClockWidgetView()
-                    .transition(.scale.combined(with: .opacity))
             }
             
-            if settings.showWeather {
-                WeatherWidgetView()
-                    .transition(.scale.combined(with: .opacity))
+            // 2. Focus Timer
+            if settings.showFocus {
+                FocusWidgetView()
             }
             
+            // Subtle Section Divider
             if settings.showLauncher {
+                SectionDivider()
                 AppLauncherWidgetView()
-                    .transition(.scale.combined(with: .opacity))
             }
             
+            // Subtle Section Divider
+            if settings.showSystem || settings.showDevStack || settings.showRepo {
+                SectionDivider()
+            }
+            
+            // 4. System Summary
             if settings.showSystem {
                 SystemWidgetView()
-                    .transition(.scale.combined(with: .opacity))
             }
             
+            // 5. Dev Stack & Ports
+            if settings.showDevStack {
+                DevStackWidgetView()
+            }
+            
+            // 6. Current Repo Context
+            if settings.showRepo {
+                RepoWidgetView()
+            }
+            
+            // 7. Minimal Now Playing
             if settings.showNowPlaying {
+                SectionDivider()
                 NowPlayingWidgetView()
-                    .transition(.scale.combined(with: .opacity))
             }
         }
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .background(
             ZStack {
                 // Glass Blur Material
                 RoundedRectangle(cornerRadius: settings.cornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
                 
-                // Dark tinted acrylic overlay
+                // Deep obsidian neutral black tint
                 RoundedRectangle(cornerRadius: settings.cornerRadius, style: .continuous)
-                    .fill(Color.black.opacity(settings.backgroundOpacity))
+                    .fill(Color(red: 0.08, green: 0.08, blue: 0.10).opacity(settings.backgroundOpacity))
             }
         )
         .overlay(
@@ -52,9 +69,9 @@ public struct DockContainerView: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.26),
-                            Color.white.opacity(0.12),
-                            Color.white.opacity(0.04)
+                            Color.white.opacity(0.20),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.03)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -62,15 +79,10 @@ public struct DockContainerView: View {
                     lineWidth: 1
                 )
         )
-        .shadow(color: Color.black.opacity(0.6), radius: 28, x: 0, y: 12)
-        .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(0.55), radius: 30, x: 0, y: 12)
+        .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 2)
         .scaleEffect(settings.dockScale)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.dockScale)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.showClock)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.showWeather)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.showLauncher)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.showSystem)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.showNowPlaying)
         .contextMenu {
             Button("MiniDock Settings...") {
                 NotificationCenter.default.post(name: NSNotification.Name("OpenMiniDockSettings"), object: nil)
@@ -89,5 +101,14 @@ public struct DockContainerView: View {
                 NSApplication.shared.terminate(nil)
             }
         }
+    }
+}
+
+private struct SectionDivider: View {
+    var body: some View {
+        Divider()
+            .frame(height: 22)
+            .background(Color.white.opacity(0.12))
+            .padding(.horizontal, 2)
     }
 }

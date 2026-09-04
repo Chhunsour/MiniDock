@@ -4,103 +4,110 @@ import AppKit
 public struct SystemWidgetView: View {
     @ObservedObject private var monitor = SystemMonitorService.shared
     @ObservedObject private var settings = AppSettings.shared
-    @State private var showingDetails = false
-    
-    private var currentMetricValue: Double {
-        monitor.stats.percentage(for: settings.systemMetric)
-    }
-    
-    private var gradientColors: [Color] {
-        monitor.stats.gradientColors(for: settings.systemMetric)
-    }
+    @State private var showingPopover = false
     
     public init() {}
     
     public var body: some View {
         WidgetCardView {
             Button(action: {
-                showingDetails.toggle()
+                showingPopover.toggle()
             }) {
                 HStack(spacing: 10) {
-                    // Circular Ring Widget
+                    // Concentric Dual Activity Ring (CPU outer, RAM inner)
                     ZStack {
-                        // Background track
+                        // Background tracks
                         Circle()
-                            .stroke(Color.white.opacity(0.12), lineWidth: 4.5)
-                            .frame(width: 44, height: 44)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                            .frame(width: 32, height: 32)
                         
-                        // Progress Arc
                         Circle()
-                            .trim(from: 0.0, to: CGFloat(min(max(currentMetricValue / 100.0, 0.01), 1.0)))
+                            .stroke(Color.white.opacity(0.08), lineWidth: 2.5)
+                            .frame(width: 23, height: 23)
+                        
+                        // CPU ring (outer)
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(min(max(monitor.stats.cpuUsage / 100.0, 0.02), 1.0)))
                             .stroke(
                                 LinearGradient(
-                                    colors: gradientColors,
+                                    colors: monitor.stats.cpuUsage > 75 ? [Color.orange, Color.red] : [Color.green, Color.mint],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                style: StrokeStyle(lineWidth: 4.5, lineCap: .round)
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
                             )
                             .rotationEffect(.degrees(-90))
-                            .frame(width: 44, height: 44)
-                            .animation(.spring(response: 0.6, dampingFraction: 0.72), value: currentMetricValue)
+                            .frame(width: 32, height: 32)
                         
-                        // Center icon and value
-                        VStack(spacing: 1) {
-                            Image(systemName: settings.systemMetric.icon)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white.opacity(0.8))
-                            
-                            Text("\(Int(round(currentMetricValue)))%")
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundColor(.white)
-                        }
+                        // RAM ring (inner)
+                        Circle()
+                            .trim(from: 0.0, to: CGFloat(min(max(monitor.stats.ramUsage / 100.0, 0.02), 1.0)))
+                            .stroke(
+                                LinearGradient(
+                                    colors: monitor.stats.ramUsage > 80 ? [Color.orange, Color.red] : [Color.cyan, Color.blue],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 23, height: 23)
                     }
                     
-                    // Metric label & secondary stat with fixedSize
+                    // Glanceable summary
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(settings.systemMetric.rawValue)
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .fixedSize()
+                        HStack(spacing: 6) {
+                            HStack(spacing: 3) {
+                                Text("CPU")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.green)
+                                Text("\(Int(round(monitor.stats.cpuUsage)))%")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text("·")
+                                .foregroundColor(.white.opacity(0.4))
+                            
+                            HStack(spacing: 3) {
+                                Text("RAM")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.cyan)
+                                Text("\(Int(round(monitor.stats.ramUsage)))%")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .fixedSize()
                         
-                        Text(metricSubtext)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                            .fixedSize()
+                        // Network speed summary
+                        HStack(spacing: 6) {
+                            Text("↓ \(monitor.stats.formattedDownloadSpeed)")
+                            Text("↑ \(monitor.stats.formattedUploadSpeed)")
+                        }
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.55))
+                        .fixedSize()
                     }
-                    .frame(minWidth: 44, alignment: .leading)
                 }
             }
             .buttonStyle(.plain)
-            .popover(isPresented: $showingDetails, arrowEdge: .top) {
-                SystemDetailPopover(stats: monitor.stats, settings: settings)
+            .popover(isPresented: $showingPopover, arrowEdge: .top) {
+                SystemDetailPopover(stats: monitor.stats)
             }
-        }
-    }
-    
-    private var metricSubtext: String {
-        switch settings.systemMetric {
-        case .cpu:
-            return "Active"
-        case .ram:
-            return String(format: "%.1f GB", monitor.stats.ramUsedGB)
-        case .disk:
-            return String(format: "%.0f%% full", monitor.stats.diskUsage)
-        case .combined:
-            return "Health"
         }
     }
 }
 
 private struct SystemDetailPopover: View {
     let stats: SystemStats
-    let settings: AppSettings
     
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("System Monitor")
+                Label("System Metrics", systemImage: "speedometer")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
@@ -117,7 +124,7 @@ private struct SystemDetailPopover: View {
             Divider()
                 .background(Color.white.opacity(0.15))
             
-            // CPU Stat
+            // CPU Load
             MetricRow(
                 icon: "cpu",
                 title: "CPU Load",
@@ -126,19 +133,19 @@ private struct SystemDetailPopover: View {
                 color: .green
             )
             
-            // RAM Stat
+            // Memory Load
             MetricRow(
                 icon: "memorychip",
                 title: "Memory",
-                valueText: String(format: "%.1f / %.1f GB", stats.ramUsedGB, stats.ramTotalGB),
+                valueText: String(format: "%.1f / %.1f GB (%.0f%%)", stats.ramUsedGB, stats.ramTotalGB, stats.ramUsage),
                 percentage: stats.ramUsage,
                 color: .cyan
             )
             
-            // Disk Stat
+            // Disk Space
             MetricRow(
                 icon: "internaldrive",
-                title: "Disk Space",
+                title: "SSD Storage",
                 valueText: String(format: "%.1f / %.1f GB", stats.diskUsedGB, stats.diskTotalGB),
                 percentage: stats.diskUsage,
                 color: .purple
@@ -147,12 +154,12 @@ private struct SystemDetailPopover: View {
             Divider()
                 .background(Color.white.opacity(0.15))
             
-            // Network Speed Stat
+            // Network Throughput
             HStack {
                 Image(systemName: "arrow.up.arrow.down")
                     .foregroundColor(.orange)
-                    .font(.system(size: 11))
-                Text("Network")
+                    .font(.system(size: 12))
+                Text("Network Throughput")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.white.opacity(0.8))
                 Spacer()
@@ -164,9 +171,9 @@ private struct SystemDetailPopover: View {
                 .foregroundColor(.white)
             }
         }
-        .padding(14)
-        .frame(width: 270)
-        .background(Color.black.opacity(0.88))
+        .padding(16)
+        .frame(width: 280)
+        .background(Color.black.opacity(0.92))
     }
 }
 

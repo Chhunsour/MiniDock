@@ -3,9 +3,8 @@ import AppKit
 
 public struct SettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
-    @State private var cityInput: String = ""
-    @State private var latInput: String = ""
-    @State private var lonInput: String = ""
+    @ObservedObject private var devStack = DevStackService.shared
+    @ObservedObject private var repo = RepoService.shared
     
     public init() {}
     
@@ -26,12 +25,12 @@ public struct SettingsView: View {
                     
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("Dark Acrylic Opacity")
+                            Text("Obsidian Glass Opacity")
                             Spacer()
                             Text(String(format: "%.0f%%", settings.backgroundOpacity * 100))
                                 .foregroundColor(.secondary)
                         }
-                        Slider(value: $settings.backgroundOpacity, in: 0.4...0.95, step: 0.05)
+                        Slider(value: $settings.backgroundOpacity, in: 0.5...0.98, step: 0.02)
                     }
                     
                     VStack(alignment: .leading, spacing: 6) {
@@ -41,7 +40,7 @@ public struct SettingsView: View {
                             Text("\(Int(settings.cornerRadius)) pt")
                                 .foregroundColor(.secondary)
                         }
-                        Slider(value: $settings.cornerRadius, in: 18...36, step: 1)
+                        Slider(value: $settings.cornerRadius, in: 18...32, step: 1)
                     }
                 }
                 
@@ -67,20 +66,13 @@ public struct SettingsView: View {
             // Widgets Configuration
             Form {
                 Section("Visible Widgets") {
-                    Toggle("Clock Widget", isOn: $settings.showClock)
-                    Toggle("Weather Widget", isOn: $settings.showWeather)
-                    Toggle("App Launcher (2x2)", isOn: $settings.showLauncher)
-                    Toggle("System Monitor Ring", isOn: $settings.showSystem)
-                    Toggle("Now Playing Media", isOn: $settings.showNowPlaying)
-                }
-                
-                Section("System Metric Focus") {
-                    Picker("Ring Metric", selection: $settings.systemMetric) {
-                        ForEach(SystemMetricType.allCases) { metric in
-                            Label(metric.rawValue, systemImage: metric.icon).tag(metric)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    Toggle("Clock & Date", isOn: $settings.showClock)
+                    Toggle("Focus & Pomodoro Timer", isOn: $settings.showFocus)
+                    Toggle("Developer Tool Launcher", isOn: $settings.showLauncher)
+                    Toggle("System Performance Summary", isOn: $settings.showSystem)
+                    Toggle("Dev Stack & Ports Monitor", isOn: $settings.showDevStack)
+                    Toggle("Git Repo Context", isOn: $settings.showRepo)
+                    Toggle("Now Playing Media (Compact)", isOn: $settings.showNowPlaying)
                 }
             }
             .padding(18)
@@ -88,36 +80,47 @@ public struct SettingsView: View {
                 Label("Widgets", systemImage: "square.grid.2x2")
             }
             
-            // Weather Settings
+            // Developer Environment
             Form {
-                Section("Location & Source") {
-                    TextField("City Name", text: $settings.weatherCity)
-                    TextField("Latitude", value: $settings.weatherLatitude, format: .number)
-                    TextField("Longitude", value: $settings.weatherLongitude, format: .number)
-                    
-                    Picker("Units", selection: $settings.tempUnit) {
-                        Text("Celsius (°C)").tag("°C")
-                        Text("Fahrenheit (°F)").tag("°F")
-                    }
-                    .pickerStyle(.segmented)
-                    
-                    Button("Quick Set: Phnom Penh, Cambodia") {
-                        settings.weatherCity = "Phnom Penh"
-                        settings.weatherLatitude = 11.5564
-                        settings.weatherLongitude = 104.9282
-                        WeatherService.shared.fetchWeather()
+                Section("Active Project Repository") {
+                    if repo.knownRepos.isEmpty {
+                        Text("No git repositories detected in home directory.")
+                            .foregroundColor(.secondary)
+                    } else {
+                        Picker("Select Active Repo", selection: Binding(
+                            get: { repo.currentRepo.repoPath },
+                            set: { repo.selectRepo(at: $0) }
+                        )) {
+                            ForEach(repo.knownRepos, id: \.self) { path in
+                                Text(URL(fileURLWithPath: path).lastPathComponent).tag(path)
+                            }
+                        }
                     }
                     
-                    Button("Refresh Weather Now") {
-                        WeatherService.shared.fetchWeather()
+                    Button("Rescan Git Repositories") {
+                        repo.findCandidateRepos()
+                        repo.refreshRepoStatus()
+                    }
+                }
+                
+                Section("Developer Ports & Services") {
+                    HStack {
+                        Text("Detected Services:")
+                        Spacer()
+                        Text("\(devStack.activeServices.count) active")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Button("Rescan Listening Ports") {
+                        devStack.scanServices()
                     }
                 }
             }
             .padding(18)
             .tabItem {
-                Label("Weather", systemImage: "cloud.sun")
+                Label("Developer", systemImage: "chevron.left.forwardslash.chevron.right")
             }
         }
-        .frame(width: 440, height: 380)
+        .frame(width: 460, height: 380)
     }
 }

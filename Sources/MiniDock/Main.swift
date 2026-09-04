@@ -28,9 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DockManager.shared.setAppleDockAutoHide(true)
         }
         
-        // Start services
-        WeatherService.shared.fetchWeather()
+        // Start developer and productivity services
         SystemMonitorService.shared.updateStats()
+        DevStackService.shared.scanServices()
+        RepoService.shared.findCandidateRepos()
+        RepoService.shared.refreshRepoStatus()
         
         // Setup SIGUSR1 signal handler for CLI `minidock settings`
         signal(SIGUSR1, SIG_IGN)

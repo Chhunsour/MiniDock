@@ -8,7 +8,7 @@ public final class MiniDockPanel: NSPanel {
     
     public init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 90),
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 75),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -26,7 +26,6 @@ public final class MiniDockPanel: NSPanel {
         self.contentView = host
         self.hostingView = host
         
-        // Listen to screen changes
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(reposition),
@@ -34,7 +33,6 @@ public final class MiniDockPanel: NSPanel {
             object: nil
         )
         
-        // Reposition when settings change
         AppSettings.shared.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -61,10 +59,9 @@ public final class MiniDockPanel: NSPanel {
         
         host.layoutSubtreeIfNeeded()
         let fitting = host.fittingSize
-        let width = max(ceil(fitting.width) + 16, 400)
-        let height = max(ceil(fitting.height) + 12, 65)
+        let width = max(ceil(fitting.width) + 12, 360)
+        let height = max(ceil(fitting.height) + 10, 60)
         
-        // Center at bottom with 16pt floating margin
         let screenRect = screen.frame
         let x = screenRect.origin.x + (screenRect.width - width) / 2.0
         let y = screenRect.origin.y + 14.0

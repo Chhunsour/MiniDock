@@ -8,14 +8,12 @@ public struct LauncherAppItem: Identifiable, Hashable, Sendable {
     public let name: String
     public let bundleIdentifier: String
     public let fallbackPath: String
-    public let iconName: String?
     
-    public init(name: String, bundleIdentifier: String, fallbackPath: String, iconName: String? = nil) {
+    public init(name: String, bundleIdentifier: String, fallbackPath: String) {
         self.id = UUID()
         self.name = name
         self.bundleIdentifier = bundleIdentifier
         self.fallbackPath = fallbackPath
-        self.iconName = iconName
     }
 }
 
@@ -31,14 +29,14 @@ public final class AppLauncherService: ObservableObject {
     private init() {
         self.apps = [
             LauncherAppItem(name: "Finder", bundleIdentifier: "com.apple.finder", fallbackPath: "/System/Library/CoreServices/Finder.app"),
-            LauncherAppItem(name: "Safari", bundleIdentifier: "com.apple.Safari", fallbackPath: "/Applications/Safari.app"),
             LauncherAppItem(name: "Terminal", bundleIdentifier: "com.apple.Terminal", fallbackPath: "/System/Applications/Utilities/Terminal.app"),
-            LauncherAppItem(name: "VS Code", bundleIdentifier: "com.microsoft.VSCode", fallbackPath: "/Applications/Visual Studio Code.app")
+            LauncherAppItem(name: "VS Code", bundleIdentifier: "com.microsoft.VSCode", fallbackPath: "/Applications/Visual Studio Code.app"),
+            LauncherAppItem(name: "Cursor", bundleIdentifier: "com.todesktop.230313mzl4w4u92", fallbackPath: "/Applications/Cursor.app"),
+            LauncherAppItem(name: "Chrome", bundleIdentifier: "com.google.Chrome", fallbackPath: "/Applications/Google Chrome.app")
         ]
         
         updateRunningStatus()
         
-        // Listen to workspace launch / terminate notifications
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didLaunchApplicationNotification,
             object: nil,
@@ -59,7 +57,6 @@ public final class AppLauncherService: ObservableObject {
             }
         }
         
-        // Periodic check every 2 seconds
         timer = Timer.publish(every: 2.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -82,7 +79,6 @@ public final class AppLauncherService: ObservableObject {
         if runningBundleIDs.contains(item.bundleIdentifier) {
             return true
         }
-        // Finder is always active on macOS
         if item.bundleIdentifier == "com.apple.finder" {
             return true
         }
