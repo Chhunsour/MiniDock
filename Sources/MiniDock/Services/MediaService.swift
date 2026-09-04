@@ -10,9 +10,11 @@ public final class MediaService: ObservableObject {
     private var timer: AnyCancellable?
     
     private init() {
-        updateMediaState()
-        // Poll every 1.5 seconds for playback state & position updates
-        timer = Timer.publish(every: 1.5, on: .main, in: .common)
+        DispatchQueue.main.async { [weak self] in
+            self?.updateMediaState()
+        }
+        // Poll every 2.0 seconds for playback state & position updates
+        timer = Timer.publish(every: 2.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateMediaState()

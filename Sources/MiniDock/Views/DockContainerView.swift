@@ -24,27 +24,19 @@ public struct DockContainerView: View {
                 AppLauncherWidgetView()
             }
             
-            // Subtle Section Divider
-            if settings.showSystem || settings.showDevStack || settings.showRepo {
-                SectionDivider()
-            }
-            
-            // 4. System Summary
             if settings.showSystem {
+                SectionDivider()
                 SystemWidgetView()
             }
             
-            // 5. Dev Stack & Ports
             if settings.showDevStack {
                 DevStackWidgetView()
             }
             
-            // 6. Current Repo Context
             if settings.showRepo {
                 RepoWidgetView()
             }
             
-            // 7. Minimal Now Playing
             if settings.showNowPlaying {
                 SectionDivider()
                 NowPlayingWidgetView()
@@ -83,24 +75,6 @@ public struct DockContainerView: View {
         .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 2)
         .scaleEffect(settings.dockScale)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.dockScale)
-        .contextMenu {
-            Button("MiniDock Settings...") {
-                NotificationCenter.default.post(name: NSNotification.Name("OpenMiniDockSettings"), object: nil)
-            }
-            Divider()
-            Button(settings.autoHideAppleDock ? "Unhide Apple Dock" : "Auto-Hide Apple Dock") {
-                settings.autoHideAppleDock.toggle()
-                DockManager.shared.setAppleDockAutoHide(settings.autoHideAppleDock)
-            }
-            Button("Restore Standard Apple Dock") {
-                DockManager.shared.restoreAppleDock()
-            }
-            Divider()
-            Button("Quit MiniDock") {
-                DockManager.shared.restoreAppleDock()
-                NSApplication.shared.terminate(nil)
-            }
-        }
     }
 }
 

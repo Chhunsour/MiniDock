@@ -2,7 +2,10 @@ import AppKit
 import SwiftUI
 
 @main
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static var strongDelegate: AppDelegate?
+    
     private var dockPanel: MiniDockPanel?
     private var menuBarController: MenuBarController?
     private var signalSource: DispatchSourceSignal?
@@ -10,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
+        strongDelegate = delegate
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         app.run()
