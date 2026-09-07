@@ -5,34 +5,32 @@ public struct ProjectCapsuleView: View {
     @ObservedObject private var service = ProjectContextService.shared
     @State private var showingDetailPopover = false
     @State private var isHovered = false
-    
+
     public init() {}
-    
+
     public var body: some View {
         let p = service.project
-        
+
         Button(action: {
             showingDetailPopover.toggle()
         }) {
             HStack(spacing: 7) {
                 // Stack or folder icon (neutral restrained aesthetic)
                 ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(isHovered ? 0.12 : 0.05))
-                        .frame(width: 22, height: 22)
-                    
                     Image(systemName: p.primaryStack.icon)
                         .font(.system(size: 10.5, weight: .semibold))
-                        .foregroundColor(isHovered ? .white : .white.opacity(0.85))
+                        .foregroundColor(isHovered ? .white : .white.opacity(0.68))
                 }
-                
+                .frame(width: 20, height: 20)
+
                 VStack(alignment: .leading, spacing: 1.5) {
                     HStack(spacing: 4) {
                         Text(p.name)
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundColor(.white.opacity(0.95))
                             .lineLimit(1)
-                        
+                            .truncationMode(.tail)
+
                         if p.isClean {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 8, weight: .bold))
@@ -41,34 +39,38 @@ public struct ProjectCapsuleView: View {
                             Text("+\(p.gitDirtyCount)")
                                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                                 .foregroundColor(Color.orange.opacity(0.90))
+                                .monospacedDigit()
                         }
                     }
-                    
+
                     HStack(spacing: 3) {
                         Text(p.gitBranch)
                             .font(.system(size: 9, weight: .regular, design: .monospaced))
                             .foregroundColor(.white.opacity(0.50))
                             .lineLimit(1)
-                        
+                            .truncationMode(.tail)
+
                         if p.gitAheadCount > 0 {
                             Text("↑\(p.gitAheadCount)")
                                 .font(.system(size: 8.5, weight: .semibold))
                                 .foregroundColor(Color.cyan.opacity(0.85))
+                                .monospacedDigit()
                         }
-                        
+
                         if p.gitBehindCount > 0 {
                             Text("↓\(p.gitBehindCount)")
                                 .font(.system(size: 8.5, weight: .semibold))
                                 .foregroundColor(Color.orange.opacity(0.85))
+                                .monospacedDigit()
                         }
                     }
                 }
-                .fixedSize()
+                .frame(width: 116, alignment: .leading)
             }
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
+            .frame(height: 40)
+            .padding(.horizontal, 8)
             .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
             )
         }
@@ -82,25 +84,25 @@ public struct ProjectCapsuleView: View {
         .contextMenu {
             Text("Project: \(p.name)").font(.headline)
             Divider()
-            
+
             Button("Open in Editor") {
                 service.openInBestEditor(path: p.path)
             }
-            
+
             Button("Open Terminal") {
                 service.openTerminal(at: p.path)
             }
-            
+
             Button("Open Folder") {
                 NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: p.path)
             }
-            
+
             if let gh = p.gitHubURL {
                 Button("View on GitHub") {
                     NSWorkspace.shared.open(gh)
                 }
             }
-            
+
             if !p.actions.isEmpty {
                 Divider()
                 Menu("Quick Actions") {
@@ -111,7 +113,7 @@ public struct ProjectCapsuleView: View {
                     }
                 }
             }
-            
+
             if !service.candidateProjects.isEmpty {
                 Menu("Switch Project") {
                     ForEach(service.candidateProjects, id: \.self) { path in
@@ -128,13 +130,13 @@ public struct ProjectCapsuleView: View {
                     }
                 }
             }
-            
+
             Divider()
-            
+
             Button("Project Settings...") {
                 MenuBarController.shared.openSettings(tab: .projects)
             }
-            
+
             Button("FlowDock Settings...") {
                 MenuBarController.shared.openSettings(tab: .general)
             }
@@ -145,10 +147,10 @@ public struct ProjectCapsuleView: View {
 private struct ProjectDetailPanel: View {
     @ObservedObject var service: ProjectContextService
     @ObservedObject var devStack = DevStackService.shared
-    
+
     var body: some View {
         let p = service.project
-        
+
         VStack(alignment: .leading, spacing: 12) {
             // Header: Project Name & Stack badge
             HStack {
@@ -156,14 +158,14 @@ private struct ProjectDetailPanel: View {
                     Text(p.name)
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    
+
                     Text(p.path)
                         .font(.system(size: 9.5, design: .monospaced))
                         .foregroundColor(.white.opacity(0.5))
                         .lineLimit(1)
                 }
                 Spacer()
-                
+
                 ForEach(p.stackTypes.prefix(2)) { stack in
                     Text(stack.rawValue)
                         .font(.system(size: 9, weight: .semibold))
@@ -173,9 +175,9 @@ private struct ProjectDetailPanel: View {
                         .foregroundColor(.blue)
                 }
             }
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             // Git Context Rows
             HStack(spacing: 12) {
                 GitBadgeView(label: "Branch", value: p.gitBranch, icon: "arrow.triangle.branch", color: .blue)
@@ -194,7 +196,7 @@ private struct ProjectDetailPanel: View {
                     )
                 }
             }
-            
+
             // Recent Commit
             if !p.lastCommitMessage.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
@@ -210,7 +212,7 @@ private struct ProjectDetailPanel: View {
                 .padding(6)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.white.opacity(0.04)))
             }
-            
+
             // Switch Project Menu
             if service.candidateProjects.count > 1 {
                 Menu {
@@ -242,14 +244,14 @@ private struct ProjectDetailPanel: View {
                 }
                 .menuStyle(.borderlessButton)
             }
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             // Quick Developer Actions
             Text("QUICK ACTIONS")
                 .font(.system(size: 9.5, weight: .bold))
                 .foregroundColor(.white.opacity(0.45))
-            
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
                 ForEach(p.actions) { action in
                     Button(action: {
@@ -260,13 +262,13 @@ private struct ProjectDetailPanel: View {
                                 .font(.system(size: 10.5, weight: .bold))
                                 .foregroundColor(.blue)
                                 .frame(width: 14)
-                            
+
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(action.title)
                                     .font(.system(size: 10.5, weight: .semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
-                                
+
                                 if let sub = action.subtitle {
                                     Text(sub)
                                         .font(.system(size: 8.5))
@@ -295,13 +297,13 @@ private struct GitBadgeView: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label.uppercased())
                 .font(.system(size: 8, weight: .semibold))
                 .foregroundColor(.white.opacity(0.4))
-            
+
             HStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 9))

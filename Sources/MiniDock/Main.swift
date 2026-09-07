@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = CommandPaletteWindowController.shared
         _ = WorkspaceService.shared
         
-        // Create and present edge-fused FlowDock panel
+        // Create and present the screen-attached FlowDock panel
         dockPanel = MiniDockPanel()
         dockPanel?.orderFront(nil)
         

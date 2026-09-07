@@ -7,9 +7,9 @@ public enum SystemMetricType: String, CaseIterable, Identifiable {
     case ram = "RAM"
     case disk = "Disk"
     case combined = "Overall"
-    
+
     public var id: String { rawValue }
-    
+
     public var icon: String {
         switch self {
         case .cpu: return "cpu"
@@ -31,9 +31,9 @@ public enum FlowDockSettingsTab: String, CaseIterable, Identifiable, Sendable {
     case system = "System"
     case privacy = "Privacy"
     case advanced = "Advanced"
-    
+
     public var id: String { rawValue }
-    
+
     public var icon: String {
         switch self {
         case .general: return "gearshape"
@@ -53,9 +53,9 @@ public enum FlowDockSettingsTab: String, CaseIterable, Identifiable, Sendable {
 @MainActor
 public final class AppSettings: ObservableObject {
     public static let shared = AppSettings()
-    
+
     private let defaults = UserDefaults.standard
-    
+
     // Geometry & Scale
     @Published public var dockScale: Double {
         didSet { defaults.set(dockScale, forKey: "dockScale") }
@@ -69,9 +69,6 @@ public final class AppSettings: ObservableObject {
     @Published public var cornerRadius: Double {
         didSet { defaults.set(cornerRadius, forKey: "cornerRadius") }
     }
-    @Published public var flareWidth: Double {
-        didSet { defaults.set(flareWidth, forKey: "flareWidth") }
-    }
     @Published public var materialStyle: String {
         didSet { defaults.set(materialStyle, forKey: "materialStyle") }
     }
@@ -81,7 +78,7 @@ public final class AppSettings: ObservableObject {
     @Published public var subtleGlowAmount: Double {
         didSet { defaults.set(subtleGlowAmount, forKey: "subtleGlowAmount") }
     }
-    
+
     // Accent Color
     @Published public var useSystemAccent: Bool {
         didSet { defaults.set(useSystemAccent, forKey: "useSystemAccent") }
@@ -89,7 +86,7 @@ public final class AppSettings: ObservableObject {
     @Published public var accentColorName: String {
         didSet { defaults.set(accentColorName, forKey: "accentColorName") }
     }
-    
+
     // Behavior & System
     @Published public var dockBehavior: String {
         didSet { defaults.set(dockBehavior, forKey: "dockBehavior") }
@@ -109,7 +106,7 @@ public final class AppSettings: ObservableObject {
     @Published public var runningIndicatorStyle: String {
         didSet { defaults.set(runningIndicatorStyle, forKey: "runningIndicatorStyle") }
     }
-    
+
     // Core Toggles
     @Published public var showFocus: Bool {
         didSet { defaults.set(showFocus, forKey: "showFocus") }
@@ -151,7 +148,7 @@ public final class AppSettings: ObservableObject {
     @Published public var systemPollInterval: Double {
         didSet { defaults.set(systemPollInterval, forKey: "systemPollInterval") }
     }
-    
+
     public var activeAccentColor: Color {
         if useSystemAccent {
             return Color(nsColor: .controlAccentColor)
@@ -173,21 +170,20 @@ public final class AppSettings: ObservableObject {
         self.iconSize = defaults.object(forKey: "iconSize") as? Double ?? 34.0
         self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 12.0
         self.cornerRadius = defaults.object(forKey: "cornerRadius") as? Double ?? 22.0
-        self.flareWidth = defaults.object(forKey: "flareWidth") as? Double ?? 52.0
         self.materialStyle = defaults.string(forKey: "materialStyle") ?? "Dark Glass"
         self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 0.90
         self.subtleGlowAmount = defaults.object(forKey: "subtleGlowAmount") as? Double ?? 0.14
-        
+
         self.useSystemAccent = defaults.object(forKey: "useSystemAccent") as? Bool ?? true
         self.accentColorName = defaults.string(forKey: "accentColorName") ?? "System"
-        
+
         self.dockBehavior = defaults.string(forKey: "dockBehavior") ?? "Always Visible"
         self.dockPosition = defaults.string(forKey: "dockPosition") ?? "Bottom"
         self.displayTarget = defaults.string(forKey: "displayTarget") ?? "Primary Display"
         self.animationSpeed = defaults.string(forKey: "animationSpeed") ?? "Normal"
         self.showOnFullscreen = defaults.object(forKey: "showOnFullscreen") as? Bool ?? false
         self.runningIndicatorStyle = defaults.string(forKey: "runningIndicatorStyle") ?? "Dot"
-        
+
         self.showFocus = defaults.object(forKey: "showFocus") as? Bool ?? true
         self.showLauncher = defaults.object(forKey: "showLauncher") as? Bool ?? true
         self.showSystem = defaults.object(forKey: "showSystem") as? Bool ?? true
@@ -198,18 +194,17 @@ public final class AppSettings: ObservableObject {
         self.maskSensitiveClipboard = defaults.object(forKey: "maskSensitiveClipboard") as? Bool ?? true
         self.smartSlotsEnabled = defaults.object(forKey: "smartSlotsEnabled") as? Bool ?? false
         self.commandShortcut = defaults.string(forKey: "commandShortcut") ?? "⌥ Space"
-        
+
         self.focusDNDEnabled = defaults.object(forKey: "focusDNDEnabled") as? Bool ?? false
         self.focusSoundEnabled = defaults.object(forKey: "focusSoundEnabled") as? Bool ?? true
         self.systemPollInterval = defaults.object(forKey: "systemPollInterval") as? Double ?? 2.0
     }
-    
+
     public func resetToDefaults() {
         self.dockScale = 1.0
         self.iconSize = 34.0
         self.dockSpacing = 12.0
         self.cornerRadius = 22.0
-        self.flareWidth = 52.0
         self.materialStyle = "Dark Glass"
         self.backgroundOpacity = 0.90
         self.subtleGlowAmount = 0.14

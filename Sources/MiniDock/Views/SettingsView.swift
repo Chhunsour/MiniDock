@@ -9,13 +9,13 @@ public struct SettingsView: View {
     @ObservedObject private var focusService = FocusService.shared
     @ObservedObject private var monitorService = SystemMonitorService.shared
     @ObservedObject private var devStack = DevStackService.shared
-    
+
     @State private var selectedTab: FlowDockSettingsTab
-    
+
     public init(initialTab: FlowDockSettingsTab = .general) {
         _selectedTab = State(initialValue: initialTab)
     }
-    
+
     public var body: some View {
         VStack(spacing: 0) {
             // Top Segmented Navigation Bar
@@ -51,9 +51,9 @@ public struct SettingsView: View {
             }
             .frame(maxWidth: .infinity)
             .background(Color.white.opacity(0.04))
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             // Tab Content
             Group {
                 switch selectedTab {
@@ -84,24 +84,24 @@ public struct SettingsView: View {
         .frame(width: 680, height: 530)
         .background(Color(red: 0.11, green: 0.11, blue: 0.14))
     }
-    
+
     // MARK: - 1. General Tab
     private var generalTab: some View {
         Form {
             Section("FlowDock System Integration") {
                 Toggle("Start FlowDock automatically at Login", isOn: $settings.launchAtLogin)
-                
+
                 Toggle("Auto-Hide standard Apple Dock", isOn: $settings.autoHideAppleDock)
                     .onChange(of: settings.autoHideAppleDock) { _, newValue in
                         DockManager.shared.setAppleDockAutoHide(newValue)
                     }
-                
+
                 Button("Restore Standard Apple Dock") {
                     DockManager.shared.restoreAppleDock()
                 }
                 .font(.system(size: 11))
             }
-            
+
             Section("Display & Behavior") {
                 Picker("Display Target", selection: $settings.displayTarget) {
                     Text("Primary Display").tag("Primary Display")
@@ -109,15 +109,15 @@ public struct SettingsView: View {
                     Text("Display 1").tag("Display 1")
                     Text("Display 2").tag("Display 2")
                 }
-                
+
                 Picker("Dock Behavior", selection: $settings.dockBehavior) {
                     Text("Always Visible").tag("Always Visible")
                     Text("Auto-Hide on Inactive").tag("Auto-Hide on Inactive")
                 }
-                
+
                 Toggle("Keep FlowDock visible during Fullscreen apps", isOn: $settings.showOnFullscreen)
             }
-            
+
             Section("Developer Defaults") {
                 Picker("Preferred Code Editor", selection: $settings.preferredEditor) {
                     Text("Cursor").tag("Cursor")
@@ -125,7 +125,7 @@ public struct SettingsView: View {
                     Text("Xcode").tag("Xcode")
                     Text("Sublime Text").tag("Sublime Text")
                 }
-                
+
                 HStack {
                     Text("Command Palette Shortcut")
                     Spacer()
@@ -137,7 +137,7 @@ public struct SettingsView: View {
         }
         .padding(18)
     }
-    
+
     // MARK: - 2. Appearance Tab (Live Preview)
     private var appearanceTab: some View {
         Form {
@@ -151,7 +151,7 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.dockScale, in: 0.8...1.3, step: 0.05)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Application Icon Size")
@@ -161,7 +161,7 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.iconSize, in: 22...44, step: 1)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Slot Spacing")
@@ -171,7 +171,7 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.dockSpacing, in: 4...18, step: 1)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Obsidian Glass Opacity")
@@ -181,7 +181,7 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.backgroundOpacity, in: 0.4...0.98, step: 0.02)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Corner Radius")
@@ -191,17 +191,7 @@ public struct SettingsView: View {
                     }
                     Slider(value: $settings.cornerRadius, in: 16...32, step: 1)
                 }
-                
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack {
-                        Text("Screen-Edge Flare Depth")
-                        Spacer()
-                        Text("\(Int(settings.flareWidth)) pt")
-                            .foregroundColor(.secondary)
-                    }
-                    Slider(value: $settings.flareWidth, in: 36...72, step: 2)
-                }
-                
+
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Ambient Edge Glow")
@@ -212,7 +202,7 @@ public struct SettingsView: View {
                     Slider(value: $settings.subtleGlowAmount, in: 0.0...0.6, step: 0.02)
                 }
             }
-            
+
             Section("Material & Translucency") {
                 Picker("Surface Material", selection: $settings.materialStyle) {
                     Text("Dark Glass").tag("Dark Glass")
@@ -221,10 +211,10 @@ public struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            
+
             Section("Accent Color") {
                 Toggle("Use macOS System Accent Color", isOn: $settings.useSystemAccent)
-                
+
                 if !settings.useSystemAccent {
                     Picker("Custom Color", selection: $settings.accentColorName) {
                         Text("Blue").tag("Blue")
@@ -237,16 +227,10 @@ public struct SettingsView: View {
                     }
                 }
             }
-            
-            Section("Screen-Edge Integration") {
-                Text("FlowDock uses edge-fused concave fillet flares attached seamlessly flush against the bottom monitor bezel (y = 0). It dissolves into the hardware screen boundary without unsightly margins.")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(18)
     }
-    
+
     // MARK: - 3. Apps Tab
     private var appsTab: some View {
         VStack(spacing: 0) {
@@ -260,13 +244,13 @@ public struct SettingsView: View {
                         .foregroundColor(.white.opacity(0.6))
                 }
                 Spacer()
-                
+
                 Button("+ Add App") {
                     AppPickerWindowController.shared.present()
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                
+
                 Button(launcher.isEditMode ? "Exit Edit Mode" : "Quick Edit Mode") {
                     withAnimation {
                         launcher.isEditMode.toggle()
@@ -274,7 +258,7 @@ public struct SettingsView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                
+
                 Button("Defaults") {
                     launcher.restoreDefaultApps()
                 }
@@ -283,22 +267,22 @@ public struct SettingsView: View {
             }
             .padding(12)
             .background(Color.white.opacity(0.03))
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             List {
                 ForEach(launcher.apps) { app in
                     HStack(spacing: 12) {
                         Image(systemName: "line.3.horizontal")
                             .foregroundColor(.white.opacity(0.35))
                             .font(.system(size: 12))
-                        
+
                         Image(nsImage: app.icon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 24, height: 24)
                             .cornerRadius(5)
-                        
+
                         VStack(alignment: .leading, spacing: 1) {
                             Text(app.name)
                                 .font(.system(size: 12, weight: .semibold))
@@ -308,15 +292,15 @@ public struct SettingsView: View {
                                 .foregroundColor(.white.opacity(0.45))
                                 .lineLimit(1)
                         }
-                        
+
                         Spacer()
-                        
+
                         Button("Replace") {
                             AppPickerWindowController.shared.present(replacingItem: app)
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.mini)
-                        
+
                         Button(action: {
                             launcher.removeApp(id: app.id)
                         }) {
@@ -333,9 +317,9 @@ public struct SettingsView: View {
                 }
             }
             .listStyle(.inset)
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             HStack(spacing: 18) {
                 HStack(spacing: 6) {
                     Text("Visible Limit:")
@@ -343,7 +327,7 @@ public struct SettingsView: View {
                     Stepper("\(launcher.maxVisibleApps) apps", value: $launcher.maxVisibleApps, in: 3...14)
                         .font(.system(size: 11))
                 }
-                
+
                 Picker("Active Indicator:", selection: $settings.runningIndicatorStyle) {
                     Text("Dot").tag("Dot")
                     Text("Bar").tag("Bar")
@@ -352,16 +336,16 @@ public struct SettingsView: View {
                 }
                 .font(.system(size: 11))
                 .frame(width: 170)
-                
+
                 Spacer()
-                
+
                 Toggle("Smart Slots", isOn: $settings.smartSlotsEnabled)
                     .font(.system(size: 11))
             }
             .padding(12)
         }
     }
-    
+
     // MARK: - 4. Projects Tab
     private var projectsTab: some View {
         Form {
@@ -374,14 +358,14 @@ public struct SettingsView: View {
                         Text(URL(fileURLWithPath: path).lastPathComponent).tag(path)
                     }
                 }
-                
+
                 Button("Rescan Candidate Projects") {
                     projectService.findCandidateProjects()
                     projectService.refreshProjectContext()
                 }
                 .font(.system(size: 11))
             }
-            
+
             Section("Project Details") {
                 HStack {
                     Text("Detected Stacks")
@@ -415,7 +399,7 @@ public struct SettingsView: View {
         }
         .padding(18)
     }
-    
+
     // MARK: - 5. Workspaces Tab
     private var workspacesTab: some View {
         VStack(spacing: 0) {
@@ -437,9 +421,9 @@ public struct SettingsView: View {
             }
             .padding(12)
             .background(Color.white.opacity(0.03))
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             List {
                 ForEach(workspaceService.workspaces) { ws in
                     HStack(spacing: 12) {
@@ -447,19 +431,19 @@ public struct SettingsView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.cyan)
                             .frame(width: 24)
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(ws.name)
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.white)
-                            
+
                             Text(ws.projectPath != nil ? URL(fileURLWithPath: ws.projectPath!).lastPathComponent : "General workspace")
                                 .font(.system(size: 10))
                                 .foregroundColor(.white.opacity(0.5))
                         }
-                        
+
                         Spacer()
-                        
+
                         Button("Launch") {
                             workspaceService.launchWorkspace(ws)
                         }
@@ -472,7 +456,7 @@ public struct SettingsView: View {
             .listStyle(.inset)
         }
     }
-    
+
     // MARK: - 6. Focus Tab
     private var focusTab: some View {
         Form {
@@ -484,7 +468,7 @@ public struct SettingsView: View {
                         .foregroundColor(focusService.isRunning ? .orange : .secondary)
                         .font(.system(size: 11, weight: .bold))
                 }
-                
+
                 HStack {
                     Text("Completed Today")
                     Spacer()
@@ -492,20 +476,20 @@ public struct SettingsView: View {
                         .foregroundColor(.orange)
                         .font(.system(size: 11, weight: .semibold))
                 }
-                
+
                 HStack(spacing: 10) {
                     Button(focusService.isRunning ? "Pause Session" : "Start Focus") {
                         focusService.togglePlayPause()
                     }
                     .buttonStyle(.borderedProminent)
-                    
+
                     Button("Reset") {
                         focusService.reset()
                     }
                     .buttonStyle(.bordered)
                 }
             }
-            
+
             Section("Quick Session Presets") {
                 HStack(spacing: 8) {
                     Button("25m Focus") {
@@ -513,27 +497,27 @@ public struct SettingsView: View {
                         focusService.start()
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Button("50m Deep Work") {
                         focusService.switchMode(.focus50)
                         focusService.start()
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Button("90m Flow State") {
                         focusService.switchMode(.focus90)
                         focusService.start()
                     }
                     .buttonStyle(.bordered)
                 }
-                
+
                 HStack(spacing: 8) {
                     Button("5m Short Break") {
                         focusService.switchMode(.shortBreak)
                         focusService.start()
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Button("15m Long Break") {
                         focusService.switchMode(.longBreak)
                         focusService.start()
@@ -541,7 +525,7 @@ public struct SettingsView: View {
                     .buttonStyle(.bordered)
                 }
             }
-            
+
             Section("Focus Options") {
                 Toggle("Do Not Disturb during active sessions", isOn: $settings.focusDNDEnabled)
                 Toggle("Play chime audio alert on completion", isOn: $settings.focusSoundEnabled)
@@ -549,7 +533,7 @@ public struct SettingsView: View {
         }
         .padding(18)
     }
-    
+
     // MARK: - 7. Commands Tab
     private var commandsTab: some View {
         VStack(spacing: 12) {
@@ -571,9 +555,9 @@ public struct SettingsView: View {
             }
             .padding(.horizontal, 18)
             .padding(.top, 16)
-            
+
             Divider().background(Color.white.opacity(0.12))
-            
+
             List {
                 CommandHelpRow(key: "⌥ Space", title: "Toggle Command Palette", category: "Global")
                 CommandHelpRow(key: "Right-Click Dock", title: "Open FlowDock Context Menu", category: "Dock")
@@ -585,7 +569,7 @@ public struct SettingsView: View {
             .listStyle(.inset)
         }
     }
-    
+
     // MARK: - 8. System Tab
     private var systemTab: some View {
         Form {
@@ -614,7 +598,7 @@ public struct SettingsView: View {
                     Text("↓ \(monitorService.stats.formattedDownloadSpeed)  ↑ \(monitorService.stats.formattedUploadSpeed)")
                         .font(.system(size: 11, design: .monospaced))
                 }
-                
+
                 Button("Open Activity Monitor") {
                     if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
                         NSWorkspace.shared.open(appUrl)
@@ -622,7 +606,7 @@ public struct SettingsView: View {
                 }
                 .font(.system(size: 11))
             }
-            
+
             Section("Dev Services") {
                 HStack {
                     Text("Docker Engine")
@@ -634,13 +618,13 @@ public struct SettingsView: View {
         }
         .padding(18)
     }
-    
+
     // MARK: - 9. Privacy Tab
     private var privacyTab: some View {
         Form {
             Section("Security & Sensitive Data") {
                 Toggle("Mask sensitive tokens in clipboard history (API keys, credentials)", isOn: $settings.maskSensitiveClipboard)
-                
+
                 Text("FlowDock operates completely locally on your Mac mini M4. No telemetry, code metadata, clipboard history, or activity logs leave your machine.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
@@ -649,7 +633,7 @@ public struct SettingsView: View {
         }
         .padding(18)
     }
-    
+
     // MARK: - 10. Advanced Tab
     private var advancedTab: some View {
         Form {
@@ -661,19 +645,19 @@ public struct SettingsView: View {
                     Text("Smooth").tag("Smooth")
                 }
             }
-            
+
             Section("Process & Lifecycle") {
                 Button("Restart FlowDock") {
                     MenuBarController.shared.restartFlowDock()
                 }
                 .font(.system(size: 11))
-                
+
                 Button("Reset All Settings to Factory Defaults") {
                     settings.resetToDefaults()
                 }
                 .font(.system(size: 11))
                 .foregroundColor(.red)
-                
+
                 Button("Quit FlowDock") {
                     MenuBarController.shared.quitApp()
                 }
@@ -688,7 +672,7 @@ private struct CommandHelpRow: View {
     let key: String
     let title: String
     let category: String
-    
+
     var body: some View {
         HStack {
             Text(key)
@@ -696,13 +680,13 @@ private struct CommandHelpRow: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.1)))
-            
+
             Text(title)
                 .font(.system(size: 11))
                 .foregroundColor(.white.opacity(0.9))
-            
+
             Spacer()
-            
+
             Text(category)
                 .font(.system(size: 9.5))
                 .foregroundColor(.white.opacity(0.45))

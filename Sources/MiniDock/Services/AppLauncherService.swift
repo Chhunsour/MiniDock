@@ -161,12 +161,21 @@ public final class AppLauncherService: ObservableObject {
     
     // MARK: - List Management
     
-    public func addApp(_ item: LauncherAppItem) {
-        // Prevent duplicate bundle IDs if already in list
-        if !item.bundleIdentifier.isEmpty && apps.contains(where: { $0.bundleIdentifier == item.bundleIdentifier }) {
-            return
+    @discardableResult
+    public func addOrPromoteApp(_ item: LauncherAppItem) -> Bool {
+        var currentApps = self.apps
+        var currentMax = self.maxVisibleApps
+        let result = AppInsertionPolicy.apply(item: item, apps: &currentApps, maxVisibleApps: &currentMax)
+        if result == .added || result == .promoted {
+            self.apps = currentApps
+            self.maxVisibleApps = currentMax
+            return true
         }
-        apps.append(item)
+        return false
+    }
+
+    public func addApp(_ item: LauncherAppItem) {
+        addOrPromoteApp(item)
     }
     
     public func removeApp(id: UUID) {
@@ -174,9 +183,8 @@ public final class AppLauncherService: ObservableObject {
     }
     
     public func replaceApp(oldItem: LauncherAppItem, with newItem: LauncherAppItem) {
-        if let index = apps.firstIndex(where: { $0.id == oldItem.id }) {
-            apps[index] = newItem
-        }
+        guard let oldIndex = apps.firstIndex(where: { $0.id == oldItem.id }) else { return }
+        apps[oldIndex] = newItem
     }
     
     public func moveApp(from sourceIndex: Int, to destinationIndex: Int) {
@@ -224,5 +232,74 @@ public final class AppLauncherService: ObservableObject {
             LauncherAppItem(name: "Cursor", bundleIdentifier: "com.todesktop.230313mzl4w4u92", path: "/Applications/Cursor.app"),
             LauncherAppItem(name: "Chrome", bundleIdentifier: "com.google.Chrome", path: "/Applications/Google Chrome.app")
         ]
+    }
+}
+
+/// Pure deterministic insertion and promotion policy for MiniDock launcher applications.
+public struct AppInsertionPolicy: Sendable {
+    public static let maxSupportedVisibleApps = 14
+
+    public enum InsertionResult: Equatable, Sendable {
+        case added
+        case promoted
+        case alreadyVisible
+    }
+
+    public static func matches(_ a: LauncherAppItem, _ b: LauncherAppItem) -> Bool {
+        if !a.bundleIdentifier.isEmpty && !b.bundleIdentifier.isEmpty {
+            return a.bundleIdentifier.lowercased() == b.bundleIdentifier.lowercased()
+        }
+        return a.path == b.path
+    }
+
+    @discardableResult
+    public static func apply(
+        item: LauncherAppItem,
+        apps: inout [LauncherAppItem],
+        maxVisibleApps: inout Int
+    ) -> InsertionResult {
+        // 1. Check if the app is already in the list
+        if let existingIndex = apps.firstIndex(where: { matches($0, item) }) {
+            if existingIndex < maxVisibleApps {
+                // If already visible, do nothing and report that state
+                return .alreadyVisible
+            }
+
+            // App exists but is hidden: promote existing item instead of duplicating it
+            let existingItem = apps.remove(at: existingIndex)
+
+            if maxVisibleApps < maxSupportedVisibleApps {
+                // Insert at visible boundary and increment maxVisibleApps once
+                let boundaryIndex = maxVisibleApps
+                apps.insert(existingItem, at: boundaryIndex)
+                maxVisibleApps += 1
+                return .promoted
+            } else {
+                // At maximum 14: insert into last visible position (13) and move previous item to hidden segment
+                let lastVisibleIndex = maxSupportedVisibleApps - 1
+                apps.insert(existingItem, at: lastVisibleIndex)
+                return .promoted
+            }
+        }
+
+        // 2. App is new (not in list)
+        if apps.count < maxVisibleApps {
+            // Below the visible limit: append normally without changing the limit
+            apps.append(item)
+            return .added
+        } else if maxVisibleApps < maxSupportedVisibleApps {
+            // At/above limit and below maximum 14:
+            // Insert at visible boundary and increment maxVisibleApps once
+            let boundaryIndex = maxVisibleApps
+            apps.insert(item, at: boundaryIndex)
+            maxVisibleApps += 1
+            return .added
+        } else {
+            // At maximum 14:
+            // Insert into last visible position (13) and move previous item into saved hidden segment
+            let lastVisibleIndex = maxSupportedVisibleApps - 1
+            apps.insert(item, at: lastVisibleIndex)
+            return .added
+        }
     }
 }

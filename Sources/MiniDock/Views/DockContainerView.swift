@@ -2,157 +2,89 @@ import SwiftUI
 import AppKit
 
 public struct DockContainerView: View {
+    private let displayScale: CGFloat
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var launcher = AppLauncherService.shared
     @ObservedObject private var workspaceService = WorkspaceService.shared
     @ObservedObject private var transient = TransientCapsuleManager.shared
     @State private var isDockHovered = false
-    
-    public init() {}
-    
+
+    public init(displayScale: CGFloat = 1.0) {
+        self.displayScale = displayScale
+    }
+
     public var body: some View {
-        let flareWidth = CGFloat(settings.flareWidth)
-        let dockSpacing = CGFloat(settings.dockSpacing) + (isDockHovered ? 2 : 0)
-        let radius = CGFloat(settings.cornerRadius)
-        let sideClearance = max(flareWidth + 12, 46)
-        
-        HStack(spacing: dockSpacing) {
-            // 1. Focus Pill (Minimal ◉ 25m)
+        let spacing = max(4.0, min(CGFloat(settings.dockSpacing) * 0.5, 8.0))
+        let radius = max(14.0, min(CGFloat(settings.cornerRadius), 18.0))
+        let flareWidth: CGFloat = 30
+        let shape = ScreenAttachedDockShape(
+            flareWidth: flareWidth,
+            flareHeight: 18,
+            cornerRadius: radius
+        )
+
+        HStack(spacing: spacing) {
             if settings.showFocus {
                 FocusWidgetView()
+                DockSeparator()
             }
-            
-            // 2. User-Selected Pinned Applications (+ inline Add)
+
             if settings.showLauncher {
-                SectionDivider()
                 AppLauncherWidgetView()
+                DockSeparator()
             }
-            
-            // 3. Current Project Capsule (Project ✓ branch)
+
             if settings.showRepo {
-                SectionDivider()
                 ProjectCapsuleView()
             }
-            
-            // 4. Contextual Area: Transient Event or Exception-First Health
+
+            DevStackWidgetView()
+            SecondaryGlanceWidgetView()
+
             if transient.activeEvent != nil {
-                SectionDivider()
                 TransientCapsuleView()
             } else if settings.showSystem {
-                SectionDivider()
                 SystemWidgetView()
             }
-            
-            // 5. Command Palette Trigger Button (Revealed on hover or minimal)
+
+            DockSeparator()
+
             Button(action: {
                 CommandPaletteWindowController.shared.toggle()
             }) {
-                HStack(spacing: 3) {
-                    Image(systemName: "command")
-                        .font(.system(size: 10, weight: .bold))
-                    if isDockHovered {
-                        Text("Space")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .transition(.opacity)
-                    }
-                }
-                .foregroundColor(.white.opacity(isDockHovered ? 0.8 : 0.35))
-                .padding(.horizontal, isDockHovered ? 7 : 5)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.white.opacity(isDockHovered ? 0.10 : 0.0))
-                )
+                Image(systemName: "command")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(isDockHovered ? 0.9 : 0.55))
+                    .frame(width: 34, height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(.white.opacity(isDockHovered ? 0.08 : 0))
+                    )
             }
             .buttonStyle(.plain)
             .help("FlowDock Command Palette (⌥ Space)")
+            .accessibilityLabel("Open Command Palette")
         }
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, sideClearance) // Generous clearance for sculpted organic bezier shoulders
-        .padding(.top, isDockHovered ? 9 : 8)
-        .padding(.bottom, isDockHovered ? 7 : 6)
-        .background(
-            ZStack {
-                // Glass material layer
-                switch settings.materialStyle {
-                case "Obsidian Vantablack":
-                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
-                        .fill(Color(red: 0.03, green: 0.03, blue: 0.04))
-                case "System Frost":
-                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
-                        .fill(.regularMaterial)
-                default: // "Dark Glass"
-                    EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
-                        .fill(.ultraThinMaterial)
-                }
-                
-                // Deep obsidian gradient fading smoothly into bottom monitor bezel
-                EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color(red: 0.12, green: 0.12, blue: 0.15).opacity(settings.backgroundOpacity * 0.95), location: 0.0),
-                                .init(color: Color(red: 0.06, green: 0.06, blue: 0.08).opacity(settings.backgroundOpacity), location: 0.40),
-                                .init(color: Color(red: 0.01, green: 0.01, blue: 0.02).opacity(min(settings.backgroundOpacity + 0.08, 1.0)), location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                
-                // Subtle inner ambient highlight along the crest
-                EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius)
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.white.opacity(isDockHovered ? 0.08 : 0.04), location: 0.0),
-                                .init(color: Color.white.opacity(0.0), location: 0.40)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            }
-            .contentShape(EdgeFusedDockShape(flareWidth: flareWidth, cornerRadius: radius))
-            .contextMenu {
-                dockContextMenu
-            }
-        )
-        .overlay(
-            // Hairline specular crest highlight that vanishes at the shoulders
-            EdgeFusedDockRim(flareWidth: flareWidth, cornerRadius: radius)
-                .stroke(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(0.0), location: 0.0),
-                            .init(color: Color.white.opacity(isDockHovered ? 0.28 : 0.18), location: 0.15),
-                            .init(color: Color.white.opacity(isDockHovered ? 0.40 : 0.28), location: 0.50),
-                            .init(color: Color.white.opacity(isDockHovered ? 0.28 : 0.18), location: 0.85),
-                            .init(color: Color.white.opacity(0.0), location: 1.0)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 1
-                )
-                .allowsHitTesting(false)
-        )
-        // Restrained ambient elevation shadows
-        .shadow(color: Color.black.opacity(isDockHovered ? 0.55 : 0.40), radius: isDockHovered ? 26 : 18, x: 0, y: -4)
-        .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: -1)
-        // Subtle accent rim reflection only if enabled
-        .shadow(color: settings.activeAccentColor.opacity(settings.subtleGlowAmount * 0.7), radius: isDockHovered ? 16 : 10, x: 0, y: -2)
-        .scaleEffect(settings.dockScale)
+        .padding(.horizontal, flareWidth + 10)
+        .padding(.vertical, 8)
+        .background { surfaceBackground(shape: shape) }
+        .overlay { surfaceBorder(shape: shape) }
+        .contentShape(shape)
+        .contextMenu {
+            dockContextMenu
+        }
+        .shadow(color: .black.opacity(isDockHovered ? 0.32 : 0.24), radius: isDockHovered ? 14 : 10, y: -2)
+        .padding(.horizontal, 12)
+        .padding(.top, 12)
+        .scaleEffect(displayScale)
         .onHover { hovering in
-            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
                 isDockHovered = hovering
             }
         }
-        .animation(.spring(response: 0.32, dampingFraction: 0.8), value: isDockHovered)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: settings.dockScale)
         .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.dockSpacing)
         .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.cornerRadius)
-        .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.flareWidth)
         .onAppear {
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.keyCode == 53 { // ESC
@@ -180,16 +112,16 @@ public struct DockContainerView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var dockContextMenu: some View {
         Text("FlowDock").font(.headline)
         Divider()
-        
+
         Button("Add Application...") {
             AppPickerWindowController.shared.present()
         }
-        
+
         Button(action: {
             withAnimation {
                 launcher.isEditMode.toggle()
@@ -202,7 +134,7 @@ public struct DockContainerView: View {
                 }
             }
         }
-        
+
         Menu("Workspaces") {
             ForEach(workspaceService.workspaces) { ws in
                 Button(ws.name) {
@@ -214,7 +146,7 @@ public struct DockContainerView: View {
                 MenuBarController.shared.openSettings(tab: .workspaces)
             }
         }
-        
+
         Menu("Focus") {
             Button("Start 25m Focus") {
                 FocusService.shared.switchMode(.focus25)
@@ -249,15 +181,15 @@ public struct DockContainerView: View {
                 MenuBarController.shared.openSettings(tab: .focus)
             }
         }
-        
+
         Divider()
-        
+
         Menu("Dock Position") {
             Button("Bottom ✓") {}
             Button("Left (Coming Soon)") {}.disabled(true)
             Button("Right (Coming Soon)") {}.disabled(true)
         }
-        
+
         Menu("Auto Hide") {
             Button(action: {
                 settings.dockBehavior = "Always Visible"
@@ -286,30 +218,71 @@ public struct DockContainerView: View {
                 }
             }
         }
-        
+
         Divider()
-        
+
         Button("Settings...") {
             MenuBarController.shared.openSettings(tab: .general)
         }
-        
+
         Divider()
-        
+
         Button("Restart FlowDock") {
             MenuBarController.shared.restartFlowDock()
         }
-        
+
         Button("Quit FlowDock") {
             MenuBarController.shared.quitApp()
         }
     }
+
+    @ViewBuilder
+    private func surfaceBackground(shape: ScreenAttachedDockShape) -> some View {
+        switch settings.materialStyle {
+        case "Obsidian Vantablack":
+            shape.fill(Color(red: 0.055, green: 0.055, blue: 0.065).opacity(settings.backgroundOpacity))
+        case "System Frost":
+            ZStack {
+                shape.fill(.regularMaterial)
+                shape.fill(.black.opacity(0.12 * settings.backgroundOpacity))
+            }
+        default:
+            ZStack {
+                shape.fill(.ultraThinMaterial)
+                shape.fill(.black.opacity(0.38 * settings.backgroundOpacity))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func surfaceBorder(shape: ScreenAttachedDockShape) -> some View {
+        ScreenAttachedDockShape(
+            flareWidth: shape.flareWidth,
+            flareHeight: shape.flareHeight,
+            cornerRadius: shape.cornerRadius,
+            isClosed: false
+        )
+            .stroke(
+                LinearGradient(
+                    stops: [
+                        .init(color: .white.opacity(0.18), location: 0.0),
+                        .init(color: .white.opacity(0.06), location: 0.35),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ),
+                lineWidth: 0.8
+            )
+            .allowsHitTesting(false)
+    }
 }
 
-private struct SectionDivider: View {
+private struct DockSeparator: View {
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.08))
-            .frame(width: 1, height: 16)
-            .padding(.horizontal, 3)
+            .fill(.white.opacity(0.08))
+            .frame(width: 1, height: 24)
+            .padding(.horizontal, 1)
     }
 }

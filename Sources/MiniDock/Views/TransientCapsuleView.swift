@@ -2,9 +2,9 @@ import SwiftUI
 
 public struct TransientCapsuleView: View {
     @ObservedObject private var manager = TransientCapsuleManager.shared
-    
+
     public init() {}
-    
+
     public var body: some View {
         if let event = manager.activeEvent {
             Button(action: {
@@ -14,21 +14,24 @@ public struct TransientCapsuleView: View {
                     Image(systemName: event.icon)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(event.color)
-                    
+
                     VStack(alignment: .leading, spacing: 1) {
                         Text(event.title)
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .foregroundColor(.white)
                             .lineLimit(1)
-                        
+                            .truncationMode(.tail)
+
                         if let detail = event.detail, !detail.isEmpty {
                             Text(detail)
                                 .font(.system(size: 9.5, weight: .medium, design: .monospaced))
                                 .foregroundColor(.white.opacity(0.65))
                                 .lineLimit(1)
+                                .truncationMode(.tail)
                         }
                     }
-                    
+                    .frame(maxWidth: 120, alignment: .leading)
+
                     Image(systemName: "xmark")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundColor(.white.opacity(0.35))

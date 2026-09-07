@@ -18,6 +18,11 @@ let package = Package(
             name: "MiniDock",
             dependencies: [],
             path: "Sources/MiniDock"
+        ),
+        .testTarget(
+            name: "MiniDockTests",
+            dependencies: ["MiniDock"],
+            path: "Tests/MiniDockTests"
         )
     ]
 )

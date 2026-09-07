@@ -5,35 +5,36 @@ public struct AppLauncherWidgetView: View {
     @ObservedObject private var launcherService = AppLauncherService.shared
     @ObservedObject private var settings = AppSettings.shared
     @State private var isAddHovered = false
-    
+
     public init() {}
-    
+
     public var body: some View {
         let displayedApps = launcherService.isEditMode ? launcherService.apps : launcherService.visibleApps
-        let iconSpacing = CGFloat(settings.dockSpacing) + 2
-        
-        HStack(spacing: launcherService.isEditMode ? max(iconSpacing, 10) : iconSpacing) {
+        let iconSpacing = max(4.0, min(CGFloat(settings.dockSpacing) * 0.5, 8.0))
+
+        HStack(spacing: launcherService.isEditMode ? max(iconSpacing, 8) : iconSpacing) {
             ForEach(displayedApps) { app in
                 AppIconSlotView(app: app)
             }
-            
+
             // Inline Add Button
             Button(action: {
                 AppPickerWindowController.shared.present()
             }) {
                 Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(isAddHovered ? .white : .white.opacity(0.35))
-                    .frame(width: 22, height: 26)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundColor(isAddHovered ? .white : .white.opacity(0.42))
+                    .frame(width: 28, height: 40)
                     .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color.white.opacity(isAddHovered ? 0.12 : 0.04))
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.white.opacity(isAddHovered ? 0.08 : 0))
                     )
             }
             .buttonStyle(.plain)
             .help("Add Application to Dock")
+            .accessibilityLabel("Add Application to Dock")
             .onHover { isAddHovered = $0 }
-            
+
             if launcherService.isEditMode {
                 Button(action: {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
@@ -52,9 +53,12 @@ public struct AppLauncherWidgetView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .help("Done Editing Dock")
+                .accessibilityLabel("Done Editing Dock")
                 .transition(.scale.combined(with: .opacity))
             }
         }
+        .padding(.horizontal, 2)
     }
 }
 
@@ -65,14 +69,14 @@ private struct AppIconSlotView: View {
     @State private var isHovered: Bool = false
     @State private var isPressed: Bool = false
     @State private var wiggle: Bool = false
-    
+
     var body: some View {
         let isRunning = launcherService.isRunning(app)
         let isEditMode = launcherService.isEditMode
         let icon = app.icon
         let iconSize = CGFloat(settings.iconSize)
         let squircleRadius = max(iconSize * 0.2237, 6)
-        
+
         ZStack(alignment: .topTrailing) {
             Button(action: handleTap) {
                 VStack(spacing: 3) {
@@ -85,11 +89,12 @@ private struct AppIconSlotView: View {
                             color: (settings.runningIndicatorStyle == "Glow" && isRunning)
                                 ? settings.activeAccentColor.opacity(0.7)
                                 : (isHovered && !isEditMode ? Color.black.opacity(0.42) : Color.black.opacity(0.26)),
-                            radius: (settings.runningIndicatorStyle == "Glow" && isRunning) ? 6 : (isHovered && !isEditMode ? 7 : 2.5),
+                            radius: (settings.runningIndicatorStyle == "Glow" && isRunning) ? 5 : (isHovered && !isEditMode ? 6 : 2.5),
                             x: 0,
                             y: (isHovered && !isEditMode ? 3 : 1)
                         )
-                        .scaleEffect(isPressed ? 0.94 : (isHovered && !isEditMode ? 1.06 : 1.0))
+                        .scaleEffect(isPressed ? 0.94 : (isHovered && !isEditMode ? 1.08 : 1.0))
+                        .offset(y: isHovered && !isEditMode ? -2 : 0)
                         .rotationEffect(.degrees(isEditMode ? (wiggle ? 1.6 : -1.6) : 0))
                         .animation(isEditMode ? .easeInOut(duration: 0.14).repeatForever(autoreverses: true) : .spring(response: 0.22, dampingFraction: 0.72), value: isHovered)
                         .animation(.spring(response: 0.18, dampingFraction: 0.70), value: isPressed)
@@ -99,7 +104,7 @@ private struct AppIconSlotView: View {
                         .onChange(of: isEditMode) { _, active in
                             wiggle = active
                         }
-                    
+
                     // Whisper-Quiet Running Indicator
                     indicatorView(isRunning: isRunning)
                 }
@@ -108,6 +113,8 @@ private struct AppIconSlotView: View {
             }
             .buttonStyle(.plain)
             .help(app.name)
+            .accessibilityLabel("\(app.name)\(isRunning ? ", running" : "")")
+            .accessibilityHint(isEditMode ? "Click to remove from dock" : "Click to open or activate application")
             .onHover { hovering in
                 isHovered = hovering
             }
@@ -115,48 +122,48 @@ private struct AppIconSlotView: View {
             .contextMenu {
                 Text(app.name).font(.headline)
                 Divider()
-                
+
                 Button("Open / Focus") {
                     handleTap()
                 }
-                
+
                 Button("New Window") {
                     launcherService.openNewWindow(app)
                 }
-                
+
                 Button("Show in Finder") {
                     launcherService.showInFinder(app)
                 }
-                
+
                 if isRunning {
                     Button("Hide") {
                         launcherService.hideApp(app)
                     }
-                    
+
                     if app.bundleIdentifier != "com.apple.finder" {
                         Button("Quit") {
                             launcherService.quitApp(app)
                         }
                     }
                 }
-                
+
                 Divider()
-                
+
                 Button("Remove from FlowDock") {
                     removeSelf()
                 }
-                
+
                 Button("Replace Application...") {
                     AppPickerWindowController.shared.present(replacingItem: app)
                 }
-                
+
                 Divider()
-                
+
                 Button("FlowDock Settings...") {
                     MenuBarController.shared.openSettings(tab: .apps)
                 }
             }
-            
+
             // Circular × Remove Badge in Edit Mode
             if isEditMode {
                 Button(action: removeSelf) {
@@ -170,7 +177,7 @@ private struct AppIconSlotView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func indicatorView(isRunning: Bool) -> some View {
         switch settings.runningIndicatorStyle {
@@ -193,7 +200,7 @@ private struct AppIconSlotView: View {
                 .shadow(color: isRunning ? Color.white.opacity(0.35) : Color.clear, radius: 1.5)
         }
     }
-    
+
     private func handleTap() {
         if launcherService.isEditMode {
             removeSelf()
@@ -209,7 +216,7 @@ private struct AppIconSlotView: View {
             }
         }
     }
-    
+
     private func removeSelf() {
         withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
             launcherService.removeApp(id: app.id)

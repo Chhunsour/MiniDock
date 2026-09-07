@@ -229,6 +229,7 @@ public struct CommandPaletteView: View {
                         }
                         .padding(8)
                     }
+                    .sleekScrollIndicators()
                     .frame(maxHeight: 360)
                 }
             }
