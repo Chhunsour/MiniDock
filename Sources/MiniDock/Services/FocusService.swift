@@ -30,6 +30,33 @@ public enum FocusMode: String, CaseIterable, Identifiable {
         case .longBreak: return "Rest"
         }
     }
+
+    public var iconName: String {
+        switch self {
+        case .focus25: return "bolt.fill"
+        case .focus50: return "target"
+        case .focus90: return "waveform.path.ecg"
+        case .shortBreak: return "cup.and.saucer.fill"
+        case .longBreak: return "leaf.fill"
+        }
+    }
+    
+    public var shortTitle: String {
+        switch self {
+        case .focus25: return "25m Sprint"
+        case .focus50: return "50m Deep"
+        case .focus90: return "90m Flow"
+        case .shortBreak: return "5m Break"
+        case .longBreak: return "15m Rest"
+        }
+    }
+
+    public var isBreak: Bool {
+        switch self {
+        case .shortBreak, .longBreak: return true
+        default: return false
+        }
+    }
 }
 
 @MainActor
@@ -137,6 +164,15 @@ public final class FocusService: ObservableObject {
         self.currentMode = mode
         self.taskLabel = mode.defaultLabel
         reset()
+    }
+    
+    public func extendTime(by minutes: Int) {
+        self.remainingSeconds += minutes * 60
+        self.totalSeconds += minutes * 60
+    }
+    
+    public func skipSession() {
+        completeSession()
     }
     
     private func tick() {

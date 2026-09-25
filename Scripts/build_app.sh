@@ -30,22 +30,47 @@ mkdir -p "$ICONSET_DIR"
 
 # Generate a high-resolution dark dock icon using Python
 python3 - << 'PYEOF'
-from PIL import Image, ImageDraw
+try:
+    from PIL import Image, ImageDraw
+    size = (512, 512)
+    img = Image.new('RGBA', size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
 
-size = (512, 512)
-img = Image.new('RGBA', size, (0, 0, 0, 0))
-draw = ImageDraw.Draw(img)
+    margin = 48
+    draw.rounded_rectangle([margin, 120, size[0] - margin, 392], radius=64, fill=(18, 18, 22, 235), outline=(255, 255, 255, 50), width=4)
+    draw.ellipse([80, 200, 190, 310], fill=(40, 40, 48, 255), outline=(0, 220, 130, 240), width=6)
+    draw.rounded_rectangle([215, 200, 315, 310], radius=24, fill=(50, 90, 180, 255))
+    draw.rounded_rectangle([340, 200, 440, 310], radius=24, fill=(210, 50, 90, 255))
 
-# Outer rounded rectangle (Dock body)
-margin = 48
-draw.rounded_rectangle([margin, 120, size[0] - margin, 392], radius=64, fill=(18, 18, 22, 235), outline=(255, 255, 255, 50), width=4)
-
-# 3 widget icons inside
-draw.ellipse([80, 200, 190, 310], fill=(40, 40, 48, 255), outline=(0, 220, 130, 240), width=6) # System ring
-draw.rounded_rectangle([215, 200, 315, 310], radius=24, fill=(50, 90, 180, 255)) # Weather/app
-draw.rounded_rectangle([340, 200, 440, 310], radius=24, fill=(210, 50, 90, 255)) # Now playing
-
-img.save('/tmp/dock_icon_512.png')
+    img.save('/tmp/dock_icon_512.png')
+except ImportError:
+    import zlib, struct
+    width, height = 512, 512
+    raw_data = bytearray()
+    for y in range(height):
+        raw_data.append(0)
+        for x in range(width):
+            r, g, b, a = 0, 0, 0, 0
+            if 48 <= x <= 464 and 120 <= y <= 392:
+                r, g, b, a = 18, 18, 22, 235
+                if x in (48, 49, 463, 464) or y in (120, 121, 391, 392):
+                    r, g, b, a = 255, 255, 255, 50
+            dx, dy = x - 135, y - 255
+            if dx*dx + dy*dy <= 55*55:
+                if dx*dx + dy*dy >= 49*49:
+                    r, g, b, a = 0, 220, 130, 240
+                else:
+                    r, g, b, a = 40, 40, 48, 255
+            if 215 <= x <= 315 and 200 <= y <= 310:
+                r, g, b, a = 50, 90, 180, 255
+            if 340 <= x <= 440 and 200 <= y <= 310:
+                r, g, b, a = 210, 50, 90, 255
+            raw_data.extend((r, g, b, a))
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
+    png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(bytes(raw_data), 9)) + chunk(b'IEND', b'')
+    with open('/tmp/dock_icon_512.png', 'wb') as f:
+        f.write(png)
 PYEOF
 
 if [ -f "/tmp/dock_icon_512.png" ]; then

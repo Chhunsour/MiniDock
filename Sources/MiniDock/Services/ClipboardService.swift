@@ -186,6 +186,11 @@ public final class ClipboardService: ObservableObject {
         }
     }
 
+    public func setScreenshotsForTesting(_ items: [ScreenshotItem]) {
+        self.screenshots = items
+        self.isLoadingScreenshots = false
+    }
+
     private func addFile(_ url: URL) {
         addHistoryItem(
             ClipboardHistoryItem(
@@ -289,7 +294,7 @@ public final class ClipboardService: ObservableObject {
         }
     }
 
-    private nonisolated static func discoverScreenshots() -> [ScreenshotItem] {
+    public nonisolated static func discoverScreenshots() -> [ScreenshotItem] {
         let task = Process()
         let pipe = Pipe()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/mdfind")

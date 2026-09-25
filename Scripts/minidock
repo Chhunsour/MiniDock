@@ -2,11 +2,17 @@
 set -e
 
 APP_PATH="/Applications/MiniDock.app"
-FALLBACK_APP_PATH="$HOME/Projects/MiniDock/MiniDock.app"
+FALLBACK_APP_PATH="$HOME/Applications/MiniDock.app"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.user.minidock.plist"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
 
 if [ ! -d "$APP_PATH" ] && [ -d "$FALLBACK_APP_PATH" ]; then
     APP_PATH="$FALLBACK_APP_PATH"
+elif [ ! -d "$APP_PATH" ] && [ -d "$SCRIPT_DIR/MiniDock.app" ]; then
+    APP_PATH="$SCRIPT_DIR/MiniDock.app"
+elif [ ! -d "$APP_PATH" ] && [ -d "$HOME/Projects/MiniDock/MiniDock.app" ]; then
+    APP_PATH="$HOME/Projects/MiniDock/MiniDock.app"
 fi
 
 show_help() {

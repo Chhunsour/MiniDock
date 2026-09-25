@@ -111,8 +111,9 @@ public struct SettingsView: View {
                 }
 
                 Picker("Dock Behavior", selection: $settings.dockBehavior) {
+                    Text("Auto-Hide (macOS Dock)").tag("Auto-Hide (macOS Dock)")
+                    Text("Auto-Hide on Window Overlap (Intellihide)").tag("Auto-Hide on Window Overlap")
                     Text("Always Visible").tag("Always Visible")
-                    Text("Auto-Hide on Inactive").tag("Auto-Hide on Inactive")
                 }
 
                 Toggle("Keep FlowDock visible during Fullscreen apps", isOn: $settings.showOnFullscreen)
@@ -205,11 +206,19 @@ public struct SettingsView: View {
 
             Section("Material & Translucency") {
                 Picker("Surface Material", selection: $settings.materialStyle) {
+                    Text("Fully Transparent ✨").tag("Fully Transparent")
+                    Text("Obsidian Black").tag("Obsidian Black")
+                    Text("Liquid Glass").tag("Liquid Glass")
                     Text("Dark Glass").tag("Dark Glass")
                     Text("Obsidian Vantablack").tag("Obsidian Vantablack")
                     Text("System Frost").tag("System Frost")
                 }
-                .pickerStyle(.segmented)
+
+                if settings.materialStyle == "Fully Transparent" {
+                    Text("The dock background is fully transparent so your icons and widgets float seamlessly over your wallpaper and windows.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section("Accent Color") {
@@ -320,27 +329,55 @@ public struct SettingsView: View {
 
             Divider().background(Color.white.opacity(0.12))
 
-            HStack(spacing: 18) {
-                HStack(spacing: 6) {
-                    Text("Visible Limit:")
-                        .font(.system(size: 11, weight: .medium))
-                    Stepper("\(launcher.maxVisibleApps) apps", value: $launcher.maxVisibleApps, in: 3...14)
+            VStack(spacing: 10) {
+                HStack(spacing: 18) {
+                    HStack(spacing: 6) {
+                        Text("Visible Limit:")
+                            .font(.system(size: 11, weight: .medium))
+                        Stepper("\(launcher.maxVisibleApps) apps", value: $launcher.maxVisibleApps, in: 3...14)
+                            .font(.system(size: 11))
+                    }
+
+                    Picker("Active Indicator:", selection: $settings.runningIndicatorStyle) {
+                        Text("Dot").tag("Dot")
+                        Text("Bar").tag("Bar")
+                        Text("Glow").tag("Glow")
+                        Text("Off").tag("Off")
+                    }
+                    .font(.system(size: 11))
+                    .frame(width: 170)
+                    .onChange(of: settings.runningIndicatorStyle) { _, newValue in
+                        settings.showRunningIndicators = (newValue != "Off")
+                    }
+
+                    Spacer()
+
+                    Toggle("Smart Slots", isOn: $settings.smartSlotsEnabled)
                         .font(.system(size: 11))
                 }
 
-                Picker("Active Indicator:", selection: $settings.runningIndicatorStyle) {
-                    Text("Dot").tag("Dot")
-                    Text("Bar").tag("Bar")
-                    Text("Glow").tag("Glow")
-                    Text("Off").tag("Off")
-                }
-                .font(.system(size: 11))
-                .frame(width: 170)
-
-                Spacer()
-
-                Toggle("Smart Slots", isOn: $settings.smartSlotsEnabled)
+                HStack(spacing: 16) {
+                    Toggle("Show indicator lights for open applications", isOn: Binding(
+                        get: { settings.showRunningIndicators && settings.runningIndicatorStyle != "Off" },
+                        set: { enabled in
+                            settings.showRunningIndicators = enabled
+                            if enabled && settings.runningIndicatorStyle == "Off" {
+                                settings.runningIndicatorStyle = "Dot"
+                            } else if !enabled {
+                                settings.runningIndicatorStyle = "Off"
+                            }
+                        }
+                    ))
                     .font(.system(size: 11))
+
+                    Toggle("Show '+' button in dock", isOn: $settings.showAddAppButton)
+                        .font(.system(size: 11))
+
+                    Toggle("Show only open applications", isOn: $settings.showOnlyRunningApps)
+                        .font(.system(size: 11))
+
+                    Spacer()
+                }
             }
             .padding(12)
         }

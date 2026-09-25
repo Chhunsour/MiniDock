@@ -5,6 +5,8 @@ public struct DevStackWidgetView: View {
     @ObservedObject private var devStack = DevStackService.shared
     @State private var showingPopover = false
     @State private var isHovered = false
+    @State private var isBeaconPulsing = false
+    @State private var scanSpin = false
 
     public init() {}
 
@@ -21,34 +23,37 @@ public struct DevStackWidgetView: View {
     }
 
     public var body: some View {
+        let isLiquidGlass = AppSettings.shared.isGlassLike
         WidgetCardView(onHoverChanged: { isHovered = $0 }) {
             Button(action: {
                 showingPopover.toggle()
             }) {
-                HStack(spacing: 8) {
+                HStack(spacing: 7) {
                     // 1. Status Indicator / Icon (22 x 22 fixed)
                     statusIcon
 
-                    // Title & subtitle stay compact in the dock; details live in the popover.
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(headline)
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                    if !isLiquidGlass || hasServices {
+                        // Title & subtitle stay compact in the dock; details live in the popover.
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(headline)
+                                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
 
-                        Text(subtext)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white.opacity(0.60))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                            Text(subtext)
+                                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.65))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        .frame(width: isLiquidGlass ? 104 : 122, alignment: .leading)
+
+                        // 3. Nested circular chevron/status control (20 x 20 fixed)
+                        statusControl
                     }
-                    .frame(width: 122, alignment: .leading)
-
-                    // 3. Nested circular chevron/status control (20 x 20 fixed)
-                    statusControl
                 }
-                .frame(width: 180, height: 24)
+                .frame(width: (isLiquidGlass && !hasServices) ? 28 : (isLiquidGlass ? 162 : 180), height: 24)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -56,6 +61,14 @@ public struct DevStackWidgetView: View {
             .accessibilityLabel("Local Services: \(headline)")
             .popover(isPresented: $showingPopover, arrowEdge: .top) {
                 DevStackDetailPopover(devStack: devStack)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                isBeaconPulsing = true
+            }
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                scanSpin = true
             }
         }
     }
@@ -66,31 +79,39 @@ public struct DevStackWidgetView: View {
             if devStack.isScanning {
                 Circle()
                     .fill(Color.white.opacity(0.08))
-                    .frame(width: 22, height: 22)
+                    .frame(width: 18, height: 18)
 
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 9.5, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.70))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                    .rotationEffect(.degrees(scanSpin ? 360 : 0))
             } else if hasServices {
                 Circle()
-                    .fill(Color.green.opacity(0.18))
-                    .frame(width: 22, height: 22)
+                    .fill(Color(red: 0.20, green: 0.85, blue: 0.45).opacity(isBeaconPulsing ? 0.32 : 0.12))
+                    .frame(width: isBeaconPulsing ? 17 : 14, height: isBeaconPulsing ? 17 : 14)
 
                 Circle()
-                    .fill(Color.green)
-                    .frame(width: 6, height: 6)
-                    .shadow(color: Color.green.opacity(0.85), radius: 3)
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(red: 0.45, green: 0.98, blue: 0.60), Color(red: 0.18, green: 0.80, blue: 0.40)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 3
+                        )
+                    )
+                    .frame(width: 5.5, height: 5.5)
+                    .shadow(color: Color(red: 0.20, green: 0.85, blue: 0.45).opacity(0.85), radius: 3)
             } else {
                 Circle()
                     .fill(Color.white.opacity(0.06))
-                    .frame(width: 22, height: 22)
+                    .frame(width: 18, height: 18)
 
                 Image(systemName: "network")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 9.5, weight: .medium))
                     .foregroundColor(.white.opacity(0.45))
             }
         }
-        .frame(width: 22, height: 22)
+        .frame(width: 18, height: 18)
     }
 
     @ViewBuilder

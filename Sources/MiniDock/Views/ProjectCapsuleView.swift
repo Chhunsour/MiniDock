@@ -67,12 +67,18 @@ public struct ProjectCapsuleView: View {
                 }
                 .frame(width: 116, alignment: .leading)
             }
-            .frame(height: 40)
+            .frame(height: 38)
             .padding(.horizontal, 8)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.white.opacity(isHovered ? 0.12 : (AppSettings.shared.isGlassLike ? 0.04 : 0.0)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(Color.white.opacity(isHovered ? 0.22 : (AppSettings.shared.isGlassLike ? 0.08 : 0.0)), lineWidth: 0.6)
+                    )
             )
+            .scaleEffect(isHovered && AppSettings.shared.isGlassLike ? 1.02 : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.82), value: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

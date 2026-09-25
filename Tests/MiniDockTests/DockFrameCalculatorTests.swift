@@ -120,4 +120,53 @@ final class DockFrameCalculatorTests: XCTestCase {
         XCTAssertEqual(shape.cornerRadius, 16.0, "Continuous radii around 14-18 pt")
         XCTAssertTrue(shape.isClosed)
     }
+
+    func testCalculateHiddenFramePositionsOffscreen() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let targetFrame = CGRect(x: 320, y: 0, width: 800, height: 70)
+
+        let hiddenFrame = DockFrameCalculator.calculateHiddenFrame(
+            targetFrame: targetFrame,
+            screenFrame: screen,
+            lipHeight: 1.0
+        )
+
+        XCTAssertEqual(hiddenFrame.origin.x, 320)
+        XCTAssertEqual(hiddenFrame.width, 800)
+        XCTAssertEqual(hiddenFrame.height, 70)
+        // Hidden Y should be at screen.origin.y - targetHeight + lipHeight: 0 - 70 + 1 = -69
+        XCTAssertEqual(hiddenFrame.origin.y, -69.0)
+    }
+
+    func testMouseInTriggerZoneAtBottomEdge() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+
+        // Mouse at bottom edge (y = 2) should trigger
+        let bottomPoint = CGPoint(x: 720, y: 2)
+        XCTAssertTrue(DockFrameCalculator.isMouseInTriggerZone(mouseLocation: bottomPoint, screenFrame: screen, threshold: 4.0))
+
+        // Mouse slightly higher up (y = 20) should NOT trigger
+        let highPoint = CGPoint(x: 720, y: 20)
+        XCTAssertFalse(DockFrameCalculator.isMouseInTriggerZone(mouseLocation: highPoint, screenFrame: screen, threshold: 4.0))
+
+        // Mouse outside horizontal screen bounds should NOT trigger
+        let outsidePoint = CGPoint(x: 1500, y: 2)
+        XCTAssertFalse(DockFrameCalculator.isMouseInTriggerZone(mouseLocation: outsidePoint, screenFrame: screen, threshold: 4.0))
+    }
+
+    func testMouseInDockBoundsWithSafetyPadding() {
+        let dockFrame = CGRect(x: 400, y: 0, width: 640, height: 65)
+
+        // Mouse right in the center of the dock
+        let centerPoint = CGPoint(x: 720, y: 30)
+        XCTAssertTrue(DockFrameCalculator.isMouseInDockBounds(mouseLocation: centerPoint, dockFrame: dockFrame))
+
+        // Mouse just slightly above the dock crest (within safety padding of 20pt)
+        let abovePoint = CGPoint(x: 720, y: 80)
+        XCTAssertTrue(DockFrameCalculator.isMouseInDockBounds(mouseLocation: abovePoint, dockFrame: dockFrame, safetyPadding: 20.0))
+
+        // Mouse far away in the application window
+        let appPoint = CGPoint(x: 720, y: 250)
+        XCTAssertFalse(DockFrameCalculator.isMouseInDockBounds(mouseLocation: appPoint, dockFrame: dockFrame, safetyPadding: 20.0))
+    }
 }

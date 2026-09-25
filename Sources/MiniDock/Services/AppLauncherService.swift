@@ -63,7 +63,11 @@ public final class AppLauncherService: ObservableObject {
     }
     
     public var visibleApps: [LauncherAppItem] {
-        Array(apps.prefix(maxVisibleApps))
+        if AppSettings.shared.showOnlyRunningApps {
+            let running = apps.filter { isRunning($0) }
+            return Array(running.prefix(maxVisibleApps))
+        }
+        return Array(apps.prefix(maxVisibleApps))
     }
     
     public func updateRunningStatus() {
@@ -219,19 +223,34 @@ public final class AppLauncherService: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: defaultsKey),
            let decoded = try? JSONDecoder().decode([LauncherAppItem].self, from: data),
            !decoded.isEmpty {
-            return decoded
+            let healed = decoded.map { item -> LauncherAppItem in
+                if item.name == "Cursor" && item.resolvedURL == nil {
+                    if FileManager.default.fileExists(atPath: "/Applications/Xcode.app") {
+                        return LauncherAppItem(name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode", path: "/Applications/Xcode.app")
+                    } else if FileManager.default.fileExists(atPath: "/Applications/Antigravity.app") {
+                        return LauncherAppItem(name: "Antigravity", bundleIdentifier: "com.google.antigravity", path: "/Applications/Antigravity.app")
+                    }
+                }
+                return item
+            }
+            return healed
         }
         return defaultApps()
     }
     
     private func defaultApps() -> [LauncherAppItem] {
-        return [
+        var items = [
             LauncherAppItem(name: "Finder", bundleIdentifier: "com.apple.finder", path: "/System/Library/CoreServices/Finder.app"),
             LauncherAppItem(name: "Terminal", bundleIdentifier: "com.apple.Terminal", path: "/System/Applications/Utilities/Terminal.app"),
-            LauncherAppItem(name: "VS Code", bundleIdentifier: "com.microsoft.VSCode", path: "/Applications/Visual Studio Code.app"),
-            LauncherAppItem(name: "Cursor", bundleIdentifier: "com.todesktop.230313mzl4w4u92", path: "/Applications/Cursor.app"),
-            LauncherAppItem(name: "Chrome", bundleIdentifier: "com.google.Chrome", path: "/Applications/Google Chrome.app")
+            LauncherAppItem(name: "VS Code", bundleIdentifier: "com.microsoft.VSCode", path: "/Applications/Visual Studio Code.app")
         ]
+        if FileManager.default.fileExists(atPath: "/Applications/Xcode.app") {
+            items.append(LauncherAppItem(name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode", path: "/Applications/Xcode.app"))
+        } else if FileManager.default.fileExists(atPath: "/Applications/Antigravity.app") {
+            items.append(LauncherAppItem(name: "Antigravity", bundleIdentifier: "com.google.antigravity", path: "/Applications/Antigravity.app"))
+        }
+        items.append(LauncherAppItem(name: "Chrome", bundleIdentifier: "com.google.Chrome", path: "/Applications/Google Chrome.app"))
+        return items
     }
 }
 

@@ -11,12 +11,14 @@ echo "========================================="
 # 1. Build application bundle
 "$PROJECT_DIR/Scripts/build_app.sh"
 
-# 2. Install to /Applications
-echo "Installing to /Applications/MiniDock.app..."
-rm -rf /Applications/MiniDock.app
-cp -R "$PROJECT_DIR/MiniDock.app" /Applications/MiniDock.app
+# 2. Install to /Applications (or ~/Applications if /Applications is not writable)
+if [ -w "/Applications" ]; then
+    echo "Installing to /Applications/MiniDock.app..."
+    rm -rf /Applications/MiniDock.app
+    cp -R "$PROJECT_DIR/MiniDock.app" /Applications/MiniDock.app
+fi
 
-# Also maintain copy in ~/Applications as backup
+# Always install/maintain copy in ~/Applications
 mkdir -p "$HOME/Applications"
 rm -rf "$HOME/Applications/MiniDock.app"
 cp -R "$PROJECT_DIR/MiniDock.app" "$HOME/Applications/MiniDock.app"

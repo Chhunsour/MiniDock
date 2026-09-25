@@ -72,6 +72,16 @@ public final class AppSettings: ObservableObject {
     @Published public var materialStyle: String {
         didSet { defaults.set(materialStyle, forKey: "materialStyle") }
     }
+    public var isGlassLike: Bool {
+        materialStyle == "Obsidian Black" ||
+        materialStyle == "Liquid Glass" ||
+        materialStyle == "Dark Glass" ||
+        materialStyle == "Obsidian Vantablack" ||
+        materialStyle == "Fully Transparent"
+    }
+    public var isFullyTransparent: Bool {
+        materialStyle == "Fully Transparent"
+    }
     @Published public var backgroundOpacity: Double {
         didSet { defaults.set(backgroundOpacity, forKey: "backgroundOpacity") }
     }
@@ -105,6 +115,15 @@ public final class AppSettings: ObservableObject {
     }
     @Published public var runningIndicatorStyle: String {
         didSet { defaults.set(runningIndicatorStyle, forKey: "runningIndicatorStyle") }
+    }
+    @Published public var showRunningIndicators: Bool {
+        didSet { defaults.set(showRunningIndicators, forKey: "showRunningIndicators") }
+    }
+    @Published public var showAddAppButton: Bool {
+        didSet { defaults.set(showAddAppButton, forKey: "showAddAppButton") }
+    }
+    @Published public var showOnlyRunningApps: Bool {
+        didSet { defaults.set(showOnlyRunningApps, forKey: "showOnlyRunningApps") }
     }
 
     // Core Toggles
@@ -168,26 +187,35 @@ public final class AppSettings: ObservableObject {
     private init() {
         self.dockScale = defaults.object(forKey: "dockScale") as? Double ?? 1.0
         self.iconSize = defaults.object(forKey: "iconSize") as? Double ?? 34.0
-        self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 12.0
+        self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 10.0
         self.cornerRadius = defaults.object(forKey: "cornerRadius") as? Double ?? 22.0
-        self.materialStyle = defaults.string(forKey: "materialStyle") ?? "Dark Glass"
-        self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 0.90
+        self.materialStyle = defaults.string(forKey: "materialStyle") ?? "System Frost"
+        self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 1.0
         self.subtleGlowAmount = defaults.object(forKey: "subtleGlowAmount") as? Double ?? 0.14
 
         self.useSystemAccent = defaults.object(forKey: "useSystemAccent") as? Bool ?? true
         self.accentColorName = defaults.string(forKey: "accentColorName") ?? "System"
 
-        self.dockBehavior = defaults.string(forKey: "dockBehavior") ?? "Always Visible"
+        let savedBehavior = defaults.string(forKey: "dockBehavior") ?? "Auto-Hide (macOS Dock)"
+        if savedBehavior == "Auto-Hide on Inactive" || savedBehavior == "Auto-Hide" {
+            self.dockBehavior = "Auto-Hide (macOS Dock)"
+        } else {
+            self.dockBehavior = savedBehavior
+        }
         self.dockPosition = defaults.string(forKey: "dockPosition") ?? "Bottom"
         self.displayTarget = defaults.string(forKey: "displayTarget") ?? "Primary Display"
         self.animationSpeed = defaults.string(forKey: "animationSpeed") ?? "Normal"
         self.showOnFullscreen = defaults.object(forKey: "showOnFullscreen") as? Bool ?? false
-        self.runningIndicatorStyle = defaults.string(forKey: "runningIndicatorStyle") ?? "Dot"
+        let indicatorStyle = defaults.string(forKey: "runningIndicatorStyle") ?? "Dot"
+        self.runningIndicatorStyle = indicatorStyle
+        self.showRunningIndicators = defaults.object(forKey: "showRunningIndicators") as? Bool ?? (indicatorStyle != "Off")
+        self.showAddAppButton = defaults.object(forKey: "showAddAppButton") as? Bool ?? true
+        self.showOnlyRunningApps = defaults.object(forKey: "showOnlyRunningApps") as? Bool ?? false
 
         self.showFocus = defaults.object(forKey: "showFocus") as? Bool ?? true
         self.showLauncher = defaults.object(forKey: "showLauncher") as? Bool ?? true
         self.showSystem = defaults.object(forKey: "showSystem") as? Bool ?? true
-        self.showRepo = defaults.object(forKey: "showRepo") as? Bool ?? true
+        self.showRepo = defaults.object(forKey: "showRepo") as? Bool ?? false
         self.autoHideAppleDock = defaults.object(forKey: "autoHideAppleDock") as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? true
         self.preferredEditor = defaults.string(forKey: "preferredEditor") ?? "Cursor"
@@ -203,23 +231,26 @@ public final class AppSettings: ObservableObject {
     public func resetToDefaults() {
         self.dockScale = 1.0
         self.iconSize = 34.0
-        self.dockSpacing = 12.0
+        self.dockSpacing = 10.0
         self.cornerRadius = 22.0
-        self.materialStyle = "Dark Glass"
-        self.backgroundOpacity = 0.90
+        self.materialStyle = "System Frost"
+        self.backgroundOpacity = 1.0
         self.subtleGlowAmount = 0.14
         self.useSystemAccent = true
         self.accentColorName = "System"
-        self.dockBehavior = "Always Visible"
+        self.dockBehavior = "Auto-Hide (macOS Dock)"
         self.dockPosition = "Bottom"
         self.displayTarget = "Primary Display"
         self.animationSpeed = "Normal"
         self.showOnFullscreen = false
         self.runningIndicatorStyle = "Dot"
+        self.showRunningIndicators = true
+        self.showAddAppButton = true
+        self.showOnlyRunningApps = false
         self.showFocus = true
         self.showLauncher = true
         self.showSystem = true
-        self.showRepo = true
+        self.showRepo = false
         self.preferredEditor = "Cursor"
         self.maskSensitiveClipboard = true
         self.smartSlotsEnabled = false
