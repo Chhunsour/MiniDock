@@ -209,7 +209,7 @@ public final class AppSettings: ObservableObject {
             self.dockBehavior = savedBehavior
         }
         self.dockPosition = defaults.string(forKey: "dockPosition") ?? "Bottom"
-        self.autoHideRevealDelay = defaults.object(forKey: "autoHideRevealDelay") as? Double ?? 1.5
+        self.autoHideRevealDelay = defaults.object(forKey: "autoHideRevealDelay") as? Double ?? 0.6
         self.autoHideDelay = defaults.object(forKey: "autoHideDelay") as? Double ?? 3.0
         self.displayTarget = defaults.string(forKey: "displayTarget") ?? "Primary Display"
         self.animationSpeed = defaults.string(forKey: "animationSpeed") ?? "Normal"
@@ -247,7 +247,7 @@ public final class AppSettings: ObservableObject {
         self.useSystemAccent = true
         self.accentColorName = "System"
         self.dockBehavior = "Auto-Hide (macOS Dock)"
-        self.autoHideRevealDelay = 1.5
+        self.autoHideRevealDelay = 0.6
         self.autoHideDelay = 3.0
         self.dockPosition = "Bottom"
         self.displayTarget = "Primary Display"

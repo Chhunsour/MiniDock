@@ -19,7 +19,7 @@ final class AutoHideTimingTests: XCTestCase {
 
         settings.resetToDefaults()
 
-        XCTAssertEqual(settings.autoHideRevealDelay, 1.5, accuracy: 0.001)
+        XCTAssertEqual(settings.autoHideRevealDelay, 0.6, accuracy: 0.001)
         XCTAssertEqual(settings.autoHideDelay, 3.0, accuracy: 0.001)
         XCTAssertEqual(settings.dockBehavior, "Auto-Hide (macOS Dock)")
     }
