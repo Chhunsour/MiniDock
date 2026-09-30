@@ -73,11 +73,15 @@ public final class AppSettings: ObservableObject {
         didSet { defaults.set(materialStyle, forKey: "materialStyle") }
     }
     public var isGlassLike: Bool {
+        materialStyle == "Apple Glass" ||
         materialStyle == "Obsidian Black" ||
         materialStyle == "Liquid Glass" ||
         materialStyle == "Dark Glass" ||
         materialStyle == "Obsidian Vantablack" ||
         materialStyle == "Fully Transparent"
+    }
+    public var isAppleGlass: Bool {
+        materialStyle == "Apple Glass"
     }
     public var isFullyTransparent: Bool {
         materialStyle == "Fully Transparent"
@@ -195,7 +199,7 @@ public final class AppSettings: ObservableObject {
         self.iconSize = defaults.object(forKey: "iconSize") as? Double ?? 34.0
         self.dockSpacing = defaults.object(forKey: "dockSpacing") as? Double ?? 10.0
         self.cornerRadius = defaults.object(forKey: "cornerRadius") as? Double ?? 22.0
-        self.materialStyle = defaults.string(forKey: "materialStyle") ?? "System Frost"
+        self.materialStyle = defaults.string(forKey: "materialStyle") ?? "Apple Glass"
         self.backgroundOpacity = defaults.object(forKey: "backgroundOpacity") as? Double ?? 1.0
         self.subtleGlowAmount = defaults.object(forKey: "subtleGlowAmount") as? Double ?? 0.14
 
@@ -241,7 +245,7 @@ public final class AppSettings: ObservableObject {
         self.iconSize = 34.0
         self.dockSpacing = 10.0
         self.cornerRadius = 22.0
-        self.materialStyle = "System Frost"
+        self.materialStyle = "Apple Glass"
         self.backgroundOpacity = 1.0
         self.subtleGlowAmount = 0.14
         self.useSystemAccent = true

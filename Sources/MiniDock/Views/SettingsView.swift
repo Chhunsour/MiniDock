@@ -234,6 +234,7 @@ public struct SettingsView: View {
 
             Section("Material & Translucency") {
                 Picker("Surface Material", selection: $settings.materialStyle) {
+                    Text("Apple Glass  (macOS Clean)").tag("Apple Glass")
                     Text("Fully Transparent ✨").tag("Fully Transparent")
                     Text("Obsidian Black").tag("Obsidian Black")
                     Text("Liquid Glass").tag("Liquid Glass")
@@ -242,7 +243,11 @@ public struct SettingsView: View {
                     Text("System Frost").tag("System Frost")
                 }
 
-                if settings.materialStyle == "Fully Transparent" {
+                if settings.materialStyle == "Apple Glass" {
+                    Text("Authentic macOS floating glass dock with optical vibrancy, specular light-catching top edge, and clean restrained typography.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                } else if settings.materialStyle == "Fully Transparent" {
                     Text("The dock background is fully transparent so your icons and widgets float seamlessly over your wallpaper and windows.")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)

@@ -17,37 +17,63 @@ public struct DockContainerView: View {
     private var isLiquidGlass: Bool {
         settings.isGlassLike
     }
+    private var isAppleGlass: Bool {
+        settings.isAppleGlass
+    }
 
-    public var body: some View {
-        let spacing = isLiquidGlass
-            ? max(6.0, min(CGFloat(settings.dockSpacing) * 0.65, 11.0))
-            : max(4.0, min(CGFloat(settings.dockSpacing) * 0.5, 8.0))
-        let radius = isLiquidGlass
-            ? max(18.0, min(CGFloat(settings.cornerRadius) + 2.0, 22.0))
-            : max(14.0, min(CGFloat(settings.cornerRadius), 18.0))
-        let flareWidth: CGFloat = isLiquidGlass ? 0 : 30
-        let attachedShape = ScreenAttachedDockShape(
-            flareWidth: flareWidth,
-            flareHeight: 18,
-            cornerRadius: radius
-        )
-        let gluedShape = UnevenRoundedRectangle(
-            topLeadingRadius: radius,
-            bottomLeadingRadius: 0,
-            bottomTrailingRadius: 0,
-            topTrailingRadius: radius,
-            style: .continuous
-        )
+    private var primaryShadowColor: Color {
+        if settings.materialStyle == "Fully Transparent" {
+            return .clear
+        }
+        if isAppleGlass {
+            return Color.black.opacity(isDockHovered ? 0.22 : 0.14)
+        }
+        return Color.black.opacity(isDockHovered ? 0.45 : 0.35)
+    }
 
+    private var primaryShadowRadius: CGFloat {
+        if isAppleGlass {
+            return isDockHovered ? 10 : 6
+        }
+        return isDockHovered ? 8 : 5
+    }
+
+    private var secondaryShadowColor: Color {
+        if settings.materialStyle == "Fully Transparent" {
+            return .clear
+        }
+        if isAppleGlass {
+            return Color.black.opacity(isDockHovered ? 0.26 : 0.18)
+        }
+        return Color.black.opacity(isDockHovered ? 0.32 : 0.22)
+    }
+
+    private var secondaryShadowRadius: CGFloat {
+        if isAppleGlass {
+            return isDockHovered ? 26 : 18
+        }
+        return isDockHovered ? 24 : 16
+    }
+
+    private var shadowY1: CGFloat {
+        isDockHovered ? -3 : -2
+    }
+
+    private var shadowY2: CGFloat {
+        isAppleGlass ? (isDockHovered ? -8 : -5) : (isDockHovered ? -7 : -5)
+    }
+
+    @ViewBuilder
+    private func dockItemsHStack(spacing: CGFloat) -> some View {
         HStack(spacing: spacing) {
             if settings.showFocus {
                 FocusWidgetView()
-                DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered)
+                DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered, isAppleGlass: isAppleGlass)
             }
 
             if settings.showLauncher {
                 AppLauncherWidgetView()
-                DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered)
+                DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered, isAppleGlass: isAppleGlass)
             }
 
             DevStackWidgetView()
@@ -59,7 +85,7 @@ public struct DockContainerView: View {
                 SystemWidgetView()
             }
 
-            DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered)
+            DockSeparator(isLiquidGlass: isLiquidGlass, isHovered: isDockHovered, isAppleGlass: isAppleGlass)
 
             WidgetCardView(onHoverChanged: { isCommandHovered = $0 }) {
                 Button(action: {
@@ -79,51 +105,83 @@ public struct DockContainerView: View {
                 .accessibilityLabel("Open Command Palette")
             }
         }
-        .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, isLiquidGlass ? 14 : (flareWidth + 10))
-        .padding(.top, isLiquidGlass ? 6 : 8)
-        .padding(.bottom, isLiquidGlass ? 4 : 8)
-        .background {
-            if isLiquidGlass {
-                liquidGlassBackground(shape: gluedShape)
-            } else {
-                surfaceBackground(shape: attachedShape)
-            }
-        }
-        .overlay {
-            if isLiquidGlass {
-                liquidGlassBorder(shape: gluedShape)
-            } else {
-                surfaceBorder(shape: attachedShape)
-            }
-        }
-        .clipShape(isLiquidGlass ? AnyShape(gluedShape) : AnyShape(attachedShape))
-        .contextMenu {
-            dockContextMenu
-        }
-        .shadow(
-            color: settings.materialStyle == "Fully Transparent"
-                ? Color.clear
-                : Color.black.opacity(isDockHovered ? 0.45 : 0.35),
-            radius: isDockHovered ? 8 : 5,
-            x: 0,
-            y: isDockHovered ? -3 : -2
+    }
+
+    public var body: some View {
+        let spacing = isAppleGlass
+            ? max(5.0, min(CGFloat(settings.dockSpacing) * 0.60, 10.0))
+            : (isLiquidGlass
+                ? max(6.0, min(CGFloat(settings.dockSpacing) * 0.65, 11.0))
+                : max(4.0, min(CGFloat(settings.dockSpacing) * 0.5, 8.0)))
+        let radius = isAppleGlass
+            ? max(18.0, min(CGFloat(settings.cornerRadius), 24.0))
+            : (isLiquidGlass
+                ? max(18.0, min(CGFloat(settings.cornerRadius) + 2.0, 22.0))
+                : max(14.0, min(CGFloat(settings.cornerRadius), 18.0)))
+        let flareWidth: CGFloat = isLiquidGlass ? 0 : 30
+        let attachedShape = ScreenAttachedDockShape(
+            flareWidth: flareWidth,
+            flareHeight: 18,
+            cornerRadius: radius
         )
-        .shadow(
-            color: settings.materialStyle == "Fully Transparent"
-                ? Color.clear
-                : Color.black.opacity(isDockHovered ? 0.32 : 0.22),
-            radius: isDockHovered ? 24 : 16,
-            x: 0,
-            y: isDockHovered ? -7 : -5
+        let gluedShape = UnevenRoundedRectangle(
+            topLeadingRadius: radius,
+            bottomLeadingRadius: 0,
+            bottomTrailingRadius: 0,
+            topTrailingRadius: radius,
+            style: .continuous
         )
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .scaleEffect(displayScale)
-        .onHover { hovering in
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-                isDockHovered = hovering
+        let floatingShape = RoundedRectangle(
+            cornerRadius: radius,
+            style: .continuous
+        )
+        let dockShape: AnyShape = isAppleGlass
+            ? AnyShape(floatingShape)
+            : (isLiquidGlass ? AnyShape(gluedShape) : AnyShape(attachedShape))
+
+        dockItemsHStack(spacing: spacing)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, isAppleGlass ? 13 : (isLiquidGlass ? 14 : (flareWidth + 10)))
+            .padding(.top, isAppleGlass ? 6 : (isLiquidGlass ? 6 : 8))
+            .padding(.bottom, isAppleGlass ? 6 : (isLiquidGlass ? 4 : 8))
+            .background {
+                if isLiquidGlass {
+                    liquidGlassBackground(shape: dockShape)
+                } else {
+                    surfaceBackground(shape: attachedShape)
+                }
             }
+            .overlay {
+                if isLiquidGlass {
+                    liquidGlassBorder(shape: dockShape)
+                } else {
+                    surfaceBorder(shape: attachedShape)
+                }
+            }
+            .clipShape(dockShape)
+            .contextMenu {
+                dockContextMenu
+            }
+            .shadow(
+                color: primaryShadowColor,
+                radius: primaryShadowRadius,
+                x: 0,
+                y: shadowY1
+            )
+            .shadow(
+                color: secondaryShadowColor,
+                radius: secondaryShadowRadius,
+                x: 0,
+                y: shadowY2
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, isAppleGlass ? 6 : 0)
+            .scaleEffect(displayScale)
+            .onHover { hovering in
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+                    isDockHovered = hovering
+                }
             if hovering {
                 MiniDockPanel.shared?.cancelPendingHide()
             } else if settings.dockBehavior != "Always Visible" {
@@ -162,8 +220,44 @@ public struct DockContainerView: View {
     }
 
     @ViewBuilder
-    private func liquidGlassBackground(shape: UnevenRoundedRectangle) -> some View {
-        if settings.materialStyle == "Fully Transparent" {
+    private func liquidGlassBackground(shape: AnyShape) -> some View {
+        if settings.materialStyle == "Apple Glass" {
+            ZStack {
+                // 1. Authentic macOS ultra-thin optical material
+                shape.fill(.ultraThinMaterial)
+
+                // 2. High-legibility neutral tint layer that softens and diffuses windows behind dock
+                shape.fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(white: 0.16).opacity(0.34 * settings.backgroundOpacity), location: 0.0),
+                            .init(color: Color(white: 0.10).opacity(0.40 * settings.backgroundOpacity), location: 0.50),
+                            .init(color: Color(white: 0.05).opacity(0.50 * settings.backgroundOpacity), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+                // 3. Subtle ambient inner sheen across the top squircle curve
+                VStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(isDockHovered ? 0.30 : 0.18), location: 0.0),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.08 : 0.04), location: 0.35),
+                            .init(color: Color.clear, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 14)
+                    .clipShape(shape)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: isDockHovered)
+            }
+        } else if settings.materialStyle == "Fully Transparent" {
             ZStack {
                 // Completely transparent background
                 shape.fill(Color.clear)
@@ -230,8 +324,26 @@ public struct DockContainerView: View {
     }
 
     @ViewBuilder
-    private func liquidGlassBorder(shape: UnevenRoundedRectangle) -> some View {
-        if settings.materialStyle == "Fully Transparent" {
+    private func liquidGlassBorder(shape: AnyShape) -> some View {
+        if settings.materialStyle == "Apple Glass" {
+            // Light-catching specular bevel (exact Apple WWDC spec: bright top edge, fading to gentle rim)
+            shape
+                .stroke(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(isDockHovered ? 0.45 : 0.35), location: 0.0),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.20 : 0.14), location: 0.25),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.08 : 0.05), location: 0.70),
+                            .init(color: Color.white.opacity(isDockHovered ? 0.05 : 0.02), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.75
+                )
+                .allowsHitTesting(false)
+                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: isDockHovered)
+        } else if settings.materialStyle == "Fully Transparent" {
             // Delicate glass shimmer only on top shoulder when hovered, no heavy dark borders
             shape
                 .stroke(
@@ -399,6 +511,14 @@ public struct DockContainerView: View {
         }
 
         Menu("Appearance") {
+            Button(action: {
+                settings.materialStyle = "Apple Glass"
+            }) {
+                HStack {
+                    Text("Apple Glass  (Clean)")
+                    if settings.materialStyle == "Apple Glass" { Text("✓") }
+                }
+            }
             Button(action: {
                 settings.materialStyle = "Fully Transparent"
             }) {
@@ -576,9 +696,27 @@ public struct DockContainerView: View {
 private struct DockSeparator: View {
     var isLiquidGlass: Bool = true
     var isHovered: Bool = false
+    var isAppleGlass: Bool = false
 
     var body: some View {
-        if isLiquidGlass {
+        if isAppleGlass {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: Color.white.opacity(isHovered ? 0.24 : 0.14), location: 0.25),
+                            .init(color: Color.white.opacity(isHovered ? 0.24 : 0.14), location: 0.75),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 1, height: 18)
+                .padding(.horizontal, 2)
+                .animation(.spring(response: 0.24, dampingFraction: 0.80), value: isHovered)
+        } else if isLiquidGlass {
             Rectangle()
                 .fill(
                     LinearGradient(
