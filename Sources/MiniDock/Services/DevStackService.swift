@@ -14,6 +14,8 @@ public struct DevServiceItem: Identifiable, Sendable, Hashable {
     public let projectName: String?
     public let stack: String
     public let user: String?
+    public let startTime: Date?
+    public let uptimeSeconds: TimeInterval?
 
     public init(
         id: String? = nil,
@@ -25,7 +27,9 @@ public struct DevServiceItem: Identifiable, Sendable, Hashable {
         projectPath: String? = nil,
         projectName: String? = nil,
         stack: String = "Service",
-        user: String? = nil
+        user: String? = nil,
+        startTime: Date? = nil,
+        uptimeSeconds: TimeInterval? = nil
     ) {
         self.id = id ?? "\(port):\(pid):\(processName)"
         self.name = name
@@ -37,6 +41,35 @@ public struct DevServiceItem: Identifiable, Sendable, Hashable {
         self.projectName = projectName
         self.stack = stack
         self.user = user
+        self.startTime = startTime
+        self.uptimeSeconds = uptimeSeconds
+    }
+
+    public var uptimeFormatted: String? {
+        guard let seconds = uptimeSeconds, seconds >= 0 else { return nil }
+        let totalSec = Int(seconds)
+        let days = totalSec / 86400
+        let hours = (totalSec % 86400) / 3600
+        let minutes = (totalSec % 3600) / 60
+        let sec = totalSec % 60
+
+        if days > 0 {
+            return "\(days)d \(hours)h"
+        } else if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "\(sec)s"
+        }
+    }
+
+    public var startedAtFormatted: String? {
+        guard let date = startTime else { return nil }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = Calendar.current.isDateInToday(date) ? .none : .short
+        return formatter.string(from: date)
     }
 
     public var isEligibleForShutdown: Bool {
@@ -118,7 +151,8 @@ public final class DevStackService: ObservableObject {
             return parseLsofOutput(
                 text,
                 cwdResolver: { pid in resolveCwd(for: pid) },
-                commandLineResolver: { pid in resolveCommandLine(for: pid) }
+                commandLineResolver: { pid in resolveCommandLine(for: pid) },
+                timingResolver: { pid in resolveProcessTiming(for: pid) }
             )
         } catch {
             return []
@@ -129,7 +163,8 @@ public final class DevStackService: ObservableObject {
         _ output: String,
         cwdResolver: ((Int) -> String?)? = nil,
         commandLineResolver: ((Int) -> String?)? = nil,
-        fileChecker: ((String) -> Bool)? = nil
+        fileChecker: ((String) -> Bool)? = nil,
+        timingResolver: ((Int) -> (startTime: Date?, uptimeSeconds: TimeInterval?))? = nil
     ) -> [DevServiceItem] {
         struct CandidateListener {
             let command: String
@@ -225,6 +260,8 @@ public final class DevStackService: ObservableObject {
             let urlString = determineURL(port: candidate.port, isWeb: stackInfo.isWeb)
             let stableId = "\(candidate.port):\(candidate.pid):\(candidate.command)"
 
+            let timing = timingResolver?(candidate.pid) ?? resolveProcessTiming(for: candidate.pid)
+
             let item = DevServiceItem(
                 id: stableId,
                 name: displayName,
@@ -235,7 +272,9 @@ public final class DevStackService: ObservableObject {
                 projectPath: projectInfo?.projectPath,
                 projectName: projectInfo?.projectName,
                 stack: stackInfo.stack,
-                user: candidate.user
+                user: candidate.user,
+                startTime: timing.startTime,
+                uptimeSeconds: timing.uptimeSeconds
             )
             items.append(item)
         }
@@ -485,6 +524,20 @@ public final class DevStackService: ObservableObject {
             return trimmed.isEmpty ? nil : trimmed
         } catch {}
         return nil
+    }
+
+    nonisolated public static func resolveProcessTiming(for pid: Int) -> (startTime: Date?, uptimeSeconds: TimeInterval?) {
+        guard pid > 0 else { return (nil, nil) }
+        var bsdInfo = proc_bsdinfo()
+        let size = proc_pidinfo(Int32(pid), PROC_PIDTBSDINFO, 0, &bsdInfo, Int32(MemoryLayout<proc_bsdinfo>.size))
+        guard size == MemoryLayout<proc_bsdinfo>.size else { return (nil, nil) }
+
+        let startSec = TimeInterval(bsdInfo.pbi_start_tvsec)
+        guard startSec > 0 else { return (nil, nil) }
+
+        let startDate = Date(timeIntervalSince1970: startSec)
+        let elapsed = max(Date().timeIntervalSince(startDate), 0)
+        return (startDate, elapsed)
     }
 
     nonisolated private static func checkDocker() -> (isRunning: Bool, containers: Int) {

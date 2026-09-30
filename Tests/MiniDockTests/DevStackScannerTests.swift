@@ -101,4 +101,59 @@ final class DevStackScannerTests: XCTestCase {
         XCTAssertEqual(services.first(where: { $0.port == 45000 })?.urlString, "http://localhost:45000")
         XCTAssertFalse(services.contains(where: { $0.pid == 13766 }), "An unmarked Java/IDE listener must not be mislabeled as a project")
     }
+
+    func testDevServiceItemTimingAndUptimeFormatting() {
+        let now = Date()
+        let item1 = DevServiceItem(
+            name: "MySQL",
+            port: 3306,
+            processName: "mysqld",
+            pid: 824,
+            startTime: now.addingTimeInterval(-2880), // 48 minutes ago
+            uptimeSeconds: 2880
+        )
+        XCTAssertEqual(item1.uptimeFormatted, "48m")
+        XCTAssertNotNil(item1.startedAtFormatted)
+
+        let item2 = DevServiceItem(
+            name: "Server",
+            port: 8080,
+            processName: "node",
+            pid: 100,
+            startTime: now.addingTimeInterval(-8100), // 2h 15m ago
+            uptimeSeconds: 8100
+        )
+        XCTAssertEqual(item2.uptimeFormatted, "2h 15m")
+
+        let item3 = DevServiceItem(
+            name: "Daemon",
+            port: 5432,
+            processName: "postgres",
+            pid: 101,
+            startTime: now.addingTimeInterval(-273600), // 3d 4h ago
+            uptimeSeconds: 273600
+        )
+        XCTAssertEqual(item3.uptimeFormatted, "3d 4h")
+
+        let item4 = DevServiceItem(
+            name: "Quick",
+            port: 9000,
+            processName: "go",
+            pid: 102,
+            startTime: now.addingTimeInterval(-25), // 25s ago
+            uptimeSeconds: 25
+        )
+        XCTAssertEqual(item4.uptimeFormatted, "25s")
+    }
+
+    func testResolveProcessTimingForSelf() {
+        let currentPid = Int(ProcessInfo.processInfo.processIdentifier)
+        let (startTime, uptime) = DevStackService.resolveProcessTiming(for: currentPid)
+
+        XCTAssertNotNil(startTime, "Darwin kernel proc_pidinfo should resolve start time for active PID")
+        XCTAssertNotNil(uptime, "Darwin kernel proc_pidinfo should resolve uptime seconds for active PID")
+        if let uptime = uptime {
+            XCTAssertGreaterThanOrEqual(uptime, 0.0)
+        }
+    }
 }

@@ -288,9 +288,26 @@ private struct ServiceRowView: View {
                             Capsule()
                                 .fill(Color.blue.opacity(0.16))
                         )
+
+                    if let uptime = service.uptimeFormatted {
+                        HStack(spacing: 2.5) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 7.5))
+                            Text(uptime)
+                                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                        }
+                        .foregroundColor(.green.opacity(0.9))
+                        .padding(.horizontal, 4.5)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            Capsule()
+                                .fill(Color.green.opacity(0.14))
+                        )
+                        .help(service.startedAtFormatted.map { "Started at \($0) (running for \(uptime))" } ?? "Running for \(uptime)")
+                    }
                 }
 
-                Text("localhost:\(service.port) · \(service.processName) (PID \(service.pid))")
+                Text("localhost:\(String(service.port)) · \(service.processName) (PID \(service.pid))\(service.startedAtFormatted.map { " · started \($0)" } ?? "")")
                     .font(.system(size: 9.5, design: .monospaced))
                     .foregroundColor(.white.opacity(0.55))
                     .lineLimit(1)
@@ -300,7 +317,7 @@ private struct ServiceRowView: View {
             Spacer(minLength: 4)
 
             // Port badge
-            Text(":\(service.port)")
+            Text(":\(String(service.port))")
                 .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                 .foregroundColor(.white.opacity(0.70))
                 .padding(.horizontal, 6)
