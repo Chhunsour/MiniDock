@@ -15,7 +15,17 @@ public final class MiniDockPanel: NSPanel {
     private var isHoveringDock: Bool = false
     public var isInteracting: Bool = false
     private var pendingHideWorkItem: DispatchWorkItem?
+    private var pendingRevealWorkItem: DispatchWorkItem?
     private var lastTargetFrame: CGRect = .zero
+
+    private var animationDurationMultiplier: Double {
+        switch AppSettings.shared.animationSpeed {
+        case "Instant": return 0.01
+        case "Snappy": return 0.6
+        case "Gentle": return 1.4
+        default: return 1.0
+        }
+    }
 
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
@@ -180,24 +190,27 @@ public final class MiniDockPanel: NSPanel {
 
         if isDockHidden {
             if DockFrameCalculator.isMouseInTriggerZone(mouseLocation: screenPoint, screenFrame: screen.frame, threshold: 4.0) {
-                revealDock(animated: true)
+                scheduleRevealDock()
+            } else {
+                cancelPendingReveal()
             }
         } else {
+            cancelPendingReveal()
             if DockFrameCalculator.isMouseInDockBounds(mouseLocation: screenPoint, dockFrame: currentTargetFrame, safetyPadding: 20.0) {
                 isHoveringDock = true
                 cancelPendingHide()
             } else {
                 if isHoveringDock {
                     isHoveringDock = false
-                    scheduleHideDock(delay: 0.35)
+                    scheduleHideDock()
                 } else if behavior == "Auto-Hide (macOS Dock)" {
                     if pendingHideWorkItem == nil && canHideDock {
-                        scheduleHideDock(delay: 0.35)
+                        scheduleHideDock()
                     }
                 } else if behavior == "Auto-Hide on Window Overlap" {
                     if DockFrameCalculator.doesAnyWindowOverlap(dockFrame: currentTargetFrame, screenFrame: screen.frame) {
                         if pendingHideWorkItem == nil && canHideDock {
-                            scheduleHideDock(delay: 0.35)
+                            scheduleHideDock()
                         }
                     }
                 }
@@ -215,7 +228,9 @@ public final class MiniDockPanel: NSPanel {
 
         if isDockHidden {
             if DockFrameCalculator.isMouseInTriggerZone(mouseLocation: mouse, screenFrame: screen.frame, threshold: 4.0) {
-                revealDock(animated: true)
+                scheduleRevealDock()
+            } else {
+                cancelPendingReveal()
             }
         } else {
             let inDock = DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouse, dockFrame: currentTargetFrame, safetyPadding: 20.0)
@@ -223,14 +238,17 @@ public final class MiniDockPanel: NSPanel {
                 isHoveringDock = true
                 cancelPendingHide()
             } else {
-                if behavior == "Auto-Hide (macOS Dock)" && canHideDock {
+                if isHoveringDock {
+                    isHoveringDock = false
+                    scheduleHideDock()
+                } else if behavior == "Auto-Hide (macOS Dock)" && canHideDock {
                     if pendingHideWorkItem == nil {
-                        scheduleHideDock(delay: 0.35)
+                        scheduleHideDock()
                     }
                 } else if behavior == "Auto-Hide on Window Overlap" && canHideDock {
                     let hasOverlap = DockFrameCalculator.doesAnyWindowOverlap(dockFrame: currentTargetFrame, screenFrame: screen.frame)
                     if hasOverlap && pendingHideWorkItem == nil {
-                        scheduleHideDock(delay: 0.35)
+                        scheduleHideDock()
                     } else if !hasOverlap && isDockHidden {
                         revealDock(animated: true)
                     }
@@ -239,7 +257,39 @@ public final class MiniDockPanel: NSPanel {
         }
     }
 
+    public func scheduleRevealDock(delay: TimeInterval? = nil) {
+        guard pendingRevealWorkItem == nil else { return }
+        guard isDockHidden else { return }
+
+        let effectiveDelay = delay ?? AppSettings.shared.autoHideRevealDelay
+        if effectiveDelay <= 0 {
+            revealDock(animated: true)
+            return
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.pendingRevealWorkItem = nil
+            guard self.isDockHidden else { return }
+            let mouse = NSEvent.mouseLocation
+            let screen = Self.resolveTargetScreen()
+            let currentTargetFrame = (self.lastTargetFrame != .zero) ? self.lastTargetFrame : self.frame
+            if DockFrameCalculator.isMouseInTriggerZone(mouseLocation: mouse, screenFrame: screen.frame, threshold: 4.0) ||
+               DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouse, dockFrame: currentTargetFrame, safetyPadding: 20.0) {
+                self.revealDock(animated: true)
+            }
+        }
+        self.pendingRevealWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + effectiveDelay, execute: workItem)
+    }
+
+    public func cancelPendingReveal() {
+        pendingRevealWorkItem?.cancel()
+        pendingRevealWorkItem = nil
+    }
+
     public func revealDock(animated: Bool = true) {
+        cancelPendingReveal()
         cancelPendingHide()
         guard isDockHidden else { return }
         isDockHidden = false
@@ -247,18 +297,26 @@ public final class MiniDockPanel: NSPanel {
 
         let targetFrame = (lastTargetFrame != .zero) ? lastTargetFrame : self.frame
 
-        if animated {
+        let duration = animated ? (0.25 * animationDurationMultiplier) : 0.0
+        if animated && duration > 0.02 {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.25
+                context.duration = duration
                 context.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1.0, 0.3, 1.0)
                 self.animator().setFrame(targetFrame, display: true)
             }
         } else {
             self.setFrame(targetFrame, display: true)
         }
+
+        let mouse = NSEvent.mouseLocation
+        if !DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouse, dockFrame: targetFrame, safetyPadding: 20.0) {
+            scheduleHideDock()
+        }
     }
 
     public func hideDock(animated: Bool = true) {
+        cancelPendingReveal()
+        cancelPendingHide()
         guard !isDockHidden else { return }
         guard canHideDock else { return }
 
@@ -268,10 +326,12 @@ public final class MiniDockPanel: NSPanel {
 
         isDockHidden = true
         isRevealedByMouse = false
+        isHoveringDock = false
 
-        if animated {
+        let duration = animated ? (0.22 * animationDurationMultiplier) : 0.0
+        if animated && duration > 0.02 {
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.22
+                context.duration = duration
                 context.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0.0, 0.2, 1.0)
                 self.animator().setFrame(hiddenFrame, display: true)
             }
@@ -280,12 +340,19 @@ public final class MiniDockPanel: NSPanel {
         }
     }
 
-    public func scheduleHideDock(delay: TimeInterval = 0.35) {
+    public func scheduleHideDock(delay: TimeInterval? = nil) {
         cancelPendingHide()
         guard canHideDock else { return }
+        let effectiveDelay = delay ?? AppSettings.shared.autoHideDelay
+
+        if effectiveDelay <= 0 {
+            hideDock(animated: true)
+            return
+        }
 
         let workItem = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
+            self.pendingHideWorkItem = nil
             let mouseLoc = NSEvent.mouseLocation
             let targetFrame = (self.lastTargetFrame != .zero) ? self.lastTargetFrame : self.frame
             if !DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouseLoc, dockFrame: targetFrame, safetyPadding: 20.0) &&
@@ -294,7 +361,7 @@ public final class MiniDockPanel: NSPanel {
             }
         }
         self.pendingHideWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + effectiveDelay, execute: workItem)
     }
 
     public func cancelPendingHide() {
@@ -303,6 +370,8 @@ public final class MiniDockPanel: NSPanel {
     }
 
     @objc private func handleBehaviorChange() {
+        cancelPendingReveal()
+        cancelPendingHide()
         let behavior = AppSettings.shared.dockBehavior
         if behavior == "Always Visible" {
             revealDock(animated: true)
@@ -310,7 +379,7 @@ public final class MiniDockPanel: NSPanel {
             let mouse = NSEvent.mouseLocation
             let target = (lastTargetFrame != .zero) ? lastTargetFrame : self.frame
             if !DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouse, dockFrame: target) {
-                scheduleHideDock(delay: 0.2)
+                scheduleHideDock(delay: 0.5)
             }
         } else if behavior == "Auto-Hide on Window Overlap" {
             let screen = Self.resolveTargetScreen()
@@ -318,7 +387,7 @@ public final class MiniDockPanel: NSPanel {
             let mouse = NSEvent.mouseLocation
             if DockFrameCalculator.doesAnyWindowOverlap(dockFrame: target, screenFrame: screen.frame) &&
                !DockFrameCalculator.isMouseInDockBounds(mouseLocation: mouse, dockFrame: target) {
-                scheduleHideDock(delay: 0.2)
+                scheduleHideDock(delay: 0.5)
             } else {
                 revealDock(animated: true)
             }
@@ -344,6 +413,7 @@ public final class MiniDockPanel: NSPanel {
 
     @objc private func menuDidBeginTracking() {
         isInteracting = true
+        cancelPendingReveal()
         cancelPendingHide()
     }
 
@@ -351,7 +421,7 @@ public final class MiniDockPanel: NSPanel {
         isInteracting = false
         let behavior = AppSettings.shared.dockBehavior
         if behavior != "Always Visible" {
-            scheduleHideDock(delay: 0.45)
+            scheduleHideDock()
         }
     }
 

@@ -116,6 +116,34 @@ public struct SettingsView: View {
                     Text("Always Visible").tag("Always Visible")
                 }
 
+                if settings.dockBehavior != "Always Visible" {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Hover Reveal Delay")
+                            Spacer()
+                            Text(String(format: "%.1f s", settings.autoHideRevealDelay))
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(value: $settings.autoHideRevealDelay, in: 0.0...3.0, step: 0.1)
+                        Text("Dwell time cursor must hover at screen edge before dock appears.")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Hide Delay")
+                            Spacer()
+                            Text(String(format: "%.1f s", settings.autoHideDelay))
+                                .foregroundColor(.secondary)
+                        }
+                        Slider(value: $settings.autoHideDelay, in: 0.5...6.0, step: 0.5)
+                        Text("Duration dock remains visible after cursor leaves before disappearing.")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 Toggle("Keep FlowDock visible during Fullscreen apps", isOn: $settings.showOnFullscreen)
             }
 

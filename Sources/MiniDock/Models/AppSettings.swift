@@ -101,6 +101,12 @@ public final class AppSettings: ObservableObject {
     @Published public var dockBehavior: String {
         didSet { defaults.set(dockBehavior, forKey: "dockBehavior") }
     }
+    @Published public var autoHideRevealDelay: Double {
+        didSet { defaults.set(autoHideRevealDelay, forKey: "autoHideRevealDelay") }
+    }
+    @Published public var autoHideDelay: Double {
+        didSet { defaults.set(autoHideDelay, forKey: "autoHideDelay") }
+    }
     @Published public var dockPosition: String {
         didSet { defaults.set(dockPosition, forKey: "dockPosition") }
     }
@@ -203,6 +209,8 @@ public final class AppSettings: ObservableObject {
             self.dockBehavior = savedBehavior
         }
         self.dockPosition = defaults.string(forKey: "dockPosition") ?? "Bottom"
+        self.autoHideRevealDelay = defaults.object(forKey: "autoHideRevealDelay") as? Double ?? 1.5
+        self.autoHideDelay = defaults.object(forKey: "autoHideDelay") as? Double ?? 3.0
         self.displayTarget = defaults.string(forKey: "displayTarget") ?? "Primary Display"
         self.animationSpeed = defaults.string(forKey: "animationSpeed") ?? "Normal"
         self.showOnFullscreen = defaults.object(forKey: "showOnFullscreen") as? Bool ?? false
@@ -239,6 +247,8 @@ public final class AppSettings: ObservableObject {
         self.useSystemAccent = true
         self.accentColorName = "System"
         self.dockBehavior = "Auto-Hide (macOS Dock)"
+        self.autoHideRevealDelay = 1.5
+        self.autoHideDelay = 3.0
         self.dockPosition = "Bottom"
         self.displayTarget = "Primary Display"
         self.animationSpeed = "Normal"

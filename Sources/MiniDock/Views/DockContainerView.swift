@@ -127,7 +127,7 @@ public struct DockContainerView: View {
             if hovering {
                 MiniDockPanel.shared?.cancelPendingHide()
             } else if settings.dockBehavior != "Always Visible" {
-                MiniDockPanel.shared?.scheduleHideDock(delay: 0.35)
+                MiniDockPanel.shared?.scheduleHideDock()
             }
         }
         .animation(.spring(response: 0.30, dampingFraction: 0.8), value: settings.dockSpacing)
