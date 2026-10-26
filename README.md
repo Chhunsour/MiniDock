@@ -1,5 +1,16 @@
 # MiniDock 🚀
 
+<p align="center">
+  <sub>Developed by <strong>Seng Chhunsour</strong></sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Chhunsour"><img src="https://img.shields.io/badge/Author-Seng%20Chhunsour-FF5A1F?style=flat-square&logo=github&logoColor=white" alt="Author: Seng Chhunsour" /></a>
+  <img src="https://img.shields.io/badge/Platform-macOS%2014%2B-black?style=flat-square&logo=apple" alt="macOS 14+" />
+  <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 5.9+" />
+  <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon-blue?style=flat-square" alt="Apple Silicon" />
+</p>
+
 A native Swift & SwiftUI floating desktop Dock replacement for macOS, engineered for Apple Silicon (M-series Macs).
 
 Inspired by modern Apple aesthetic principles: dark frosted glass (`.ultraThinMaterial`), rounded widget cards, live system monitors, live weather, Spotify / Apple Music Now Playing integration, compact app launcher, and complete safety for macOS's built-in Dock.
@@ -38,3 +49,17 @@ or
 ```bash
 minidock restore-apple-dock
 ```
+
+---
+
+## 👤 Author & Developer
+
+**Developed by Seng Chhunsour**
+- **GitHub:** [@Chhunsour](https://github.com/Chhunsour)
+- **Repository:** [https://github.com/Chhunsour/MiniDock](https://github.com/Chhunsour/MiniDock)
+
+---
+
+## 📄 License
+
+Personal and open-source project. Developed by Seng Chhunsour. All rights reserved.
